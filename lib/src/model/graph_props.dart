@@ -5,7 +5,6 @@ import 'package:dagre/src/model/enums/rank_dir.dart';
 import 'enums/ranker.dart';
 
 class GraphProps {
-
   ///控制布局方向和对齐
   RankDir rankDir = RankDir.ttb;
   GraphAlign? align;
