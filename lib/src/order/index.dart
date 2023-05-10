@@ -1,6 +1,6 @@
-import 'package:dagre/src/model/enums/relationship.dart';
-import 'package:dagre/src/order/sort_subgraph.dart';
-import 'package:dagre/src/util/list_util.dart';
+import 'package:dart_dagre/src/model/enums/relationship.dart';
+import 'package:dart_dagre/src/order/sort_subgraph.dart';
+import 'package:dart_dagre/src/util/list_util.dart';
 import '../graph/graph.dart';
 import '../model/tmp/resolve_conflicts_result.dart';
 import '../util.dart' as util;

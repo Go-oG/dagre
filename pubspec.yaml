@@ -1,7 +1,7 @@
-name: dagre
-description: A new Flutter project.
+name: dart_dagre
+description: dagre.js的dart版本
 version: 0.0.1
-homepage:
+homepage: https://github.com/Go-oG/dagre
 
 environment:
   sdk: '>=2.19.6 <3.0.0'

@@ -1,4 +1,4 @@
-import 'package:dagre/src/rank/util.dart' as ru;
+import 'package:dart_dagre/src/rank/util.dart' as ru;
 import '../graph/graph.dart';
 import '../model/enums/ranker.dart';
 import 'feasible_tree.dart' as ft;

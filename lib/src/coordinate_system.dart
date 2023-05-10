@@ -1,9 +1,9 @@
 import 'dart:math';
 
-import 'package:dagre/src/graph/graph.dart';
-import 'package:dagre/src/model/enums/rank_dir.dart';
-import 'package:dagre/src/model/edge_props.dart';
-import 'package:dagre/src/model/node_props.dart';
+import 'package:dart_dagre/src/graph/graph.dart';
+import 'package:dart_dagre/src/model/enums/rank_dir.dart';
+import 'package:dart_dagre/src/model/edge_props.dart';
+import 'package:dart_dagre/src/model/node_props.dart';
 
 void adjust(Graph g) {
   var rankDir = g.graph.rankDir;

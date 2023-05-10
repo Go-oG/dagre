@@ -1,15 +1,15 @@
 import 'dart:math' as math;
-import 'package:dagre/src/model/enums/align.dart';
-import 'package:dagre/src/model/enums/dummy.dart';
-import 'package:dagre/src/model/enums/label_pos.dart';
-import 'package:dagre/src/model/edge.dart';
-import 'package:dagre/src/model/edge_props.dart';
-import 'package:dagre/src/model/node_props.dart';
-import 'package:dagre/src/util/list_util.dart';
+import 'package:dart_dagre/src/model/enums/align.dart';
+import 'package:dart_dagre/src/model/enums/dummy.dart';
+import 'package:dart_dagre/src/model/enums/label_pos.dart';
+import 'package:dart_dagre/src/model/edge.dart';
+import 'package:dart_dagre/src/model/edge_props.dart';
+import 'package:dart_dagre/src/model/node_props.dart';
+import 'package:dart_dagre/src/util/list_util.dart';
 
 import '../graph/graph.dart';
 import '../util/util.dart';
-import 'package:dagre/src/util.dart' as util;
+import 'package:dart_dagre/src/util.dart' as util;
 
 Map<String, Map<String, bool>> _findType1Conflicts(Graph g, List<List<String>> layering) {
   Map<String, Map<String, bool>> conflicts = {};

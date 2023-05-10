@@ -1,6 +1,6 @@
-import 'package:dagre/src/model/edge_props.dart';
-import 'package:dagre/src/model/graph_props.dart';
-import 'package:dagre/src/model/node_props.dart';
+import 'package:dart_dagre/src/model/edge_props.dart';
+import 'package:dart_dagre/src/model/graph_props.dart';
+import 'package:dart_dagre/src/model/node_props.dart';
 import '../graph/graph.dart';
 import '../model/enums/relationship.dart';
 import '../model/edge.dart';

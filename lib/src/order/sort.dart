@@ -1,6 +1,6 @@
-import 'package:dagre/src/model/tmp/split.dart';
+import 'package:dart_dagre/src/model/tmp/split.dart';
 import '../model/tmp/resolve_conflicts_result.dart';
-import 'package:dagre/src/util.dart' as util;
+import 'package:dart_dagre/src/util.dart' as util;
 
 ResolveConflictsResult sort(List<ResolveConflictsResult> entries, bool biasRight) {
   Split<ResolveConflictsResult> parts = util.partition<ResolveConflictsResult>(entries, (entry) {

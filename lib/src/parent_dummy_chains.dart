@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
-import 'package:dagre/src/graph/graph.dart';
-import 'package:dagre/src/util/list_util.dart';
+import 'package:dart_dagre/src/graph/graph.dart';
+import 'package:dart_dagre/src/util/list_util.dart';
 
 void parentDummyChains(Graph g) {
   Map<String, _InnerResult2> postorderNums = _postorder(g);

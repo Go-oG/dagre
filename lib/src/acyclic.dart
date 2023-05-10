@@ -1,7 +1,7 @@
-import 'package:dagre/src/graph/graph.dart';
-import 'package:dagre/src/model/enums/acyclicer.dart';
-import 'package:dagre/src/model/edge.dart';
-import 'package:dagre/src/util/util.dart';
+import 'package:dart_dagre/src/graph/graph.dart';
+import 'package:dart_dagre/src/model/enums/acyclicer.dart';
+import 'package:dart_dagre/src/model/edge.dart';
+import 'package:dart_dagre/src/util/util.dart';
 
 import 'greedy_fas.dart';
 

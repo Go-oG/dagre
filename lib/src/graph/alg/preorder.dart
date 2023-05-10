@@ -1,4 +1,4 @@
-import 'package:dagre/src/model/enums/dfs_order.dart';
+import 'package:dart_dagre/src/model/enums/dfs_order.dart';
 
 import 'dfs.dart';
 import '../graph.dart';

@@ -1,6 +1,6 @@
-import 'package:dagre/src/order/resolve_conflicts.dart';
-import 'package:dagre/src/order/sort.dart';
-import 'package:dagre/src/model/node_props.dart';
+import 'package:dart_dagre/src/order/resolve_conflicts.dart';
+import 'package:dart_dagre/src/order/sort.dart';
+import 'package:dart_dagre/src/model/node_props.dart';
 import '../graph/graph.dart';
 import '../model/tmp/resolve_conflicts_result.dart';
 import '../util/list_util.dart';

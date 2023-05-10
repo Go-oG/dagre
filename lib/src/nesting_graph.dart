@@ -1,9 +1,9 @@
-import 'package:dagre/src/graph/graph.dart';
-import 'package:dagre/src/model/enums/dummy.dart';
-import 'package:dagre/src/model/edge_props.dart';
-import 'package:dagre/src/model/node_props.dart';
-import 'package:dagre/src/util.dart' as util;
-import 'package:dagre/src/util/list_util.dart';
+import 'package:dart_dagre/src/graph/graph.dart';
+import 'package:dart_dagre/src/model/enums/dummy.dart';
+import 'package:dart_dagre/src/model/edge_props.dart';
+import 'package:dart_dagre/src/model/node_props.dart';
+import 'package:dart_dagre/src/util.dart' as util;
+import 'package:dart_dagre/src/util/list_util.dart';
 
 void run(Graph g) {
   var root = util.addDummyNode(g, Dummy.root, NodeProps(), "_root");

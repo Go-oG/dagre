@@ -1,4 +1,4 @@
-import 'package:dagre/src/model/edge.dart';
+import 'package:dart_dagre/src/model/edge.dart';
 
 import '../graph/graph.dart';
 import '../model/tmp/order_inner_result.dart';

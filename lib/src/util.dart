@@ -1,13 +1,13 @@
 import 'dart:math' as math;
 
-import 'package:dagre/src/graph/graph.dart';
-import 'package:dagre/src/model/array.dart';
-import 'package:dagre/src/model/graph_point.dart';
-import 'package:dagre/src/model/graph_rect.dart';
-import 'package:dagre/src/model/edge_props.dart';
-import 'package:dagre/src/model/node_props.dart';
-import 'package:dagre/src/util/list_util.dart';
-import 'package:dagre/src/util/util.dart';
+import 'package:dart_dagre/src/graph/graph.dart';
+import 'package:dart_dagre/src/model/array.dart';
+import 'package:dart_dagre/src/model/graph_point.dart';
+import 'package:dart_dagre/src/model/graph_rect.dart';
+import 'package:dart_dagre/src/model/edge_props.dart';
+import 'package:dart_dagre/src/model/node_props.dart';
+import 'package:dart_dagre/src/util/list_util.dart';
+import 'package:dart_dagre/src/util/util.dart';
 import 'package:flutter/widgets.dart';
 
 import 'model/tmp/split.dart';

@@ -1,4 +1,4 @@
-import 'package:dagre/src/model/graph_point.dart';
+import 'package:dart_dagre/src/model/graph_point.dart';
 
 import 'enums/label_pos.dart';
 

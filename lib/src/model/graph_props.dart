@@ -1,6 +1,6 @@
-import 'package:dagre/src/model/enums/acyclicer.dart';
-import 'package:dagre/src/model/enums/align.dart';
-import 'package:dagre/src/model/enums/rank_dir.dart';
+import 'package:dart_dagre/src/model/enums/acyclicer.dart';
+import 'package:dart_dagre/src/model/enums/align.dart';
+import 'package:dart_dagre/src/model/enums/rank_dir.dart';
 
 import 'enums/ranker.dart';
 

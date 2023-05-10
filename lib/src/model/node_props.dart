@@ -1,7 +1,7 @@
-import 'package:dagre/src/model/enums/dummy.dart';
-import 'package:dagre/src/model/enums/label_pos.dart';
-import 'package:dagre/src/model/edge_props.dart';
-import 'package:dagre/src/model/edge.dart';
+import 'package:dart_dagre/src/model/enums/dummy.dart';
+import 'package:dart_dagre/src/model/enums/label_pos.dart';
+import 'package:dart_dagre/src/model/edge_props.dart';
+import 'package:dart_dagre/src/model/edge.dart';
 
 import 'tmp/self_edge_data.dart';
 

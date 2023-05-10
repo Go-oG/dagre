@@ -1,7 +1,7 @@
-import 'package:dagre/src/model/edge.dart';
-import 'package:dagre/src/model/graph_props.dart';
-import 'package:dagre/src/model/node_props.dart';
-import 'package:dagre/src/util/list_util.dart';
+import 'package:dart_dagre/src/model/edge.dart';
+import 'package:dart_dagre/src/model/graph_props.dart';
+import 'package:dart_dagre/src/model/node_props.dart';
+import 'package:dart_dagre/src/util/list_util.dart';
 import 'package:flutter/widgets.dart';
 
 import '../model/edge_props.dart';
