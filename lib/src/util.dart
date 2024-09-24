@@ -172,7 +172,7 @@ void removeEmptyRanks(Graph g) {
   }
 
   var delta = 0;
-  var nodeRankFactor = g.getLabel<GraphProps>().nodeRankFactor;
+  var nodeRankFactor = g.getLabel<GraphProps>().nodeRankFactor!;
 
   layers.forEach((vs, i) {
     if ((vs == null||vs.isEmpty) && i % nodeRankFactor != 0) {
