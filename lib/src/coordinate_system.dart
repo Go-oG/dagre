@@ -27,10 +27,10 @@ void undo(Graph g) {
 }
 
 void _swapWidthHeight(Graph g) {
-  for (var v in g.nodes) {
+  for (var v in g.nodesIterable) {
     _swapWidthHeightOne(g.node(v));
   }
-  for (var e in g.edges) {
+  for (var e in g.edgesIterable) {
     _swapWidthHeightOne2(g.edge2<EdgeProps>(e));
   }
 }
@@ -47,31 +47,32 @@ void _swapWidthHeightOne2(EdgeProps attrs) {
 }
 
 void _reverseY(Graph g) {
-  for (var v in g.nodes) {
+  for (var v in g.nodesIterable) {
     NodeProps np=g.node(v);
-    np.y=-np.y;
+    np.y = -np.y!;
   }
-  for (var e in g.edges) {
+  for (var e in g.edgesIterable) {
     var edge = g.edge2<EdgeProps>(e);
     for (var p in edge.points) {
       p.y=-p.y;
     }
-    if (edge.yNull != null) {
-      edge.y = -edge.y;
+    if (edge.y != null) {
+      edge.y = -edge.y!;
     }
   }
 }
 
 void _swapXY(Graph g) {
-  for (var v in g.nodes) {
-    _swapXYOne(g.node(v));
+  for (var v in g.nodesIterable) {
+    _swapXYOne(g.node<NodeProps>(v));
   }
 
-  for (var e in g.edges) {
+  for (var e in g.edgesIterable) {
     var edge = g.edge2<EdgeProps>(e);
     edge.points=List.from(edge.points.map((e) => Point(e.y, e.x)));
-    if(edge.xNull!=null){
-      var x = edge.x;
+
+    if(edge.x!=null){
+      var x = edge.x!;
       edge.x = edge.y;
       edge.y = x;
     }
@@ -79,7 +80,7 @@ void _swapXY(Graph g) {
 }
 
 void _swapXYOne(NodeProps attrs) {
-  var x = attrs.xNull;
-  attrs.x = attrs.yNull;
+  var x = attrs.x;
+  attrs.x = attrs.y;
   attrs.y = x;
 }
