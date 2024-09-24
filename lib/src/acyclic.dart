@@ -7,7 +7,7 @@ import 'greedy_fas.dart';
 import 'model/graph_props.dart';
 
 void run(Graph g) {
-  num Function(EdgeObj) weightFn(Graph g2) {
+  double Function(EdgeObj) weightFn(Graph g2) {
     return (e) {
       return g2.edge2<EdgeProps>(e).weight;
     };
@@ -21,6 +21,7 @@ void run(Graph g) {
     label.reversed = true;
     g.setEdge(e.w, e.v,value: label,id: uniqueId("rev"));
   }
+
 }
 
 List<EdgeObj> dfsFAS(Graph g) {
@@ -51,7 +52,7 @@ List<EdgeObj> dfsFAS(Graph g) {
 void undo(Graph g) {
   for (var e in g.edges) {
     var label = g.edge2<EdgeProps>(e);
-    if (label.reversedNull ?? false) {
+    if (label.reversed==true) {
       g.removeEdge2(e);
       var forwardName = label.forwardName;
       label.reversed = null;
