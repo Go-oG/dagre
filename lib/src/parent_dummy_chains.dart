@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:dart_dagre/src/graph/graph.dart';
+import 'package:dart_dagre/src/model/node_props.dart';
 import 'package:dart_dagre/src/util/list_util.dart';
 
 import 'model/graph_props.dart';
@@ -8,8 +9,8 @@ import 'model/graph_props.dart';
 void parentDummyChains(Graph g) {
   Map<String, _InnerResult2> postorderNums = _postorder(g);
   for (var v in g.getLabel<GraphProps>().dummyChains) {
-    var node = g.node(v);
-    var edgeObj = node.edgeObj;
+    var node = g.node<NodeProps>(v);
+    var edgeObj = node.edgeObj!;
     _InnerResult pathData = _findPath(g, postorderNums, edgeObj.v, edgeObj.w);
     var path = pathData.path;
     var lca = pathData.lca;
@@ -18,10 +19,10 @@ void parentDummyChains(Graph g) {
     var ascending = true;
 
     while (v != edgeObj.w) {
-      node = g.node(v);
+      node = g.node<NodeProps>(v);
 
       if (ascending) {
-        while ((pathV = path[pathIdx]) != lca && g.node(pathV!).maxRank < node.rank) {
+        while ((pathV = path[pathIdx]) != lca && g.node<NodeProps>(pathV!).maxRank! < node.rank! ) {
           pathIdx++;
         }
 
@@ -31,7 +32,7 @@ void parentDummyChains(Graph g) {
       }
 
       if (!ascending) {
-        while (pathIdx < path.length - 1 && g.node((pathV = path[pathIdx + 1])!).minRank <= node.rank) {
+        while (pathIdx < path.length - 1 && g.node<NodeProps>((pathV = path[pathIdx + 1])!).minRank! <= node.rank! ) {
           pathIdx++;
         }
         pathV = path[pathIdx];
