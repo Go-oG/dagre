@@ -20,8 +20,7 @@ void _normalizeEdge(Graph g, EdgeObj e) {
   int wRank = g.node(w).rank;
   var name = e.id;
   var edgeLabel = g.edge2<EdgeProps>(e);
-  var labelRank = edgeLabel.labelRankNull;
-
+  var labelRank = edgeLabel.labelRank;
   if (wRank == vRank + 1) return;
 
   g.removeEdge2(e);
@@ -52,7 +51,6 @@ void _normalizeEdge(Graph g, EdgeObj e) {
     if (i == 0) {
       g.getLabel<GraphProps>().dummyChains.add(dummy);
     }
-
     v = dummy;
   }
   g.setEdge(v, w, id: name, value: EdgeProps(weight: edgeLabel.weight));
@@ -61,12 +59,12 @@ void _normalizeEdge(Graph g, EdgeObj e) {
 void undo(Graph g) {
   for (var v in g.getLabel<GraphProps>().dummyChains) {
     NodeProps? node = g.node(v);
-    EdgeProps origLabel = node!.edgeLabel;
-    g.setEdge2(node.edgeObj, origLabel);
-    while (node != null && node.dummyNull != null) {
+    EdgeProps origLabel = node!.edgeLabel!;
+    g.setEdge2(node.edgeObj!, origLabel);
+    while (node != null && node.dummy != null) {
       var w = g.successors(v)[0];
       g.removeNode(v);
-      origLabel.points.add(GraphPoint(node.x, node.y));
+      origLabel.points.add(GraphPoint(node.x!, node.y!));
       if (node.dummy == Dummy.edgeLabel) {
         origLabel.x = node.x;
         origLabel.y = node.y;
