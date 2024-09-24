@@ -22,11 +22,10 @@ void networkSimplex(Graph g) {
   }
 
   for(var v in g2.nodes){
-    var np=g2.node(v);
-    var np2=g.node(v);
+    var np = g2.node<NodeProps>(v);
+    var np2 = g.node<NodeProps>(v);
     np2.rank=np.rank;
   }
-
 }
 
 void _initCutValues(Graph t, Graph g) {

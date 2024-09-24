@@ -36,12 +36,25 @@ class GraphProps {
 
   String? root;
   String? nestingRoot;
-  double? _nodeRankFactor;
+  double? nodeRankFactor;
   int? maxRank;
   List<String> dummyChains = [];
 
-  double get nodeRankFactor => _nodeRankFactor!;
-
-  set nodeRankFactor(double v) => _nodeRankFactor = v;
-
+  GraphProps({
+    this.rankDir = RankDir.ttb,
+    this.align,
+    this.nodeSep = 50,
+    this.edgeSep = 10,
+    this.rankSep = 50,
+    this.marginX = 0,
+    this.marginY = 0,
+    this.acyclicer = Acyclicer.none,
+    this.ranker = Ranker.networkSimplex,
+    this.width = 0,
+    this.height = 0,
+    this.root,
+    this.nestingRoot,
+    this.nodeRankFactor,
+    this.maxRank,
+  });
 }

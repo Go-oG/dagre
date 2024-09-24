@@ -162,14 +162,14 @@ _InnerResult _verticalAlignment(
   return result;
 }
 
-Map<String, num> _horizontalCompaction(
+Map<String, double> _horizontalCompaction(
   Graph g,
   List<List<String>> layering,
   Map<String, String> root,
   Map<String, String> align,
   bool reverseSep,
 ) {
-  Map<String, num> xs = {};
+  Map<String, double> xs = {};
   Graph blockG = _buildBlockGraph(g, layering, root, reverseSep);
   String borderType = reverseSep ? "borderLeft" : "borderRight";
 
@@ -198,7 +198,7 @@ Map<String, num> _horizontalCompaction(
     List<EdgeObj> lp = blockG.inEdges(elem);
     xs[elem] = lp.reduce2<num>((e, acc) {
       return math.max(acc, (xs[e.v]! + blockG.edge2<EdgeProps>(e).value));
-    }, 0);
+    }, 0).toDouble();
   }
 
   // Second pass, assign greatest coordinates
@@ -209,7 +209,7 @@ Map<String, num> _horizontalCompaction(
 
     var node = g.node(elem);
     if (minv != double.maxFinite && node.borderType != borderType) {
-      xs[elem] = math.max(xs[elem] as num, minv);
+      xs[elem] = math.max(xs[elem] as num, minv).toDouble();
     }
   }
 
@@ -248,10 +248,10 @@ Graph _buildBlockGraph(Graph g, List<List<String>> layering, Map<String, String>
 /*
  * 返回给定对齐中宽度最小的对齐
  */
-Map<String, num> _findSmallestWidthAlignment(Graph g, Map<GraphAlign, Map<String, num>> xss) {
+Map<String, double> _findSmallestWidthAlignment(Graph g, Map<GraphAlign, Map<String, double>> xss) {
   return minBy(List.from(xss.values), (xs) {
-    num max = double.minPositive;
-    num min = double.maxFinite;
+    double max = double.minPositive;
+    double min = double.maxFinite;
     xs.forEach((x, v) {
       var halfWidth = _width(g, x) / 2;
       max = math.max(v + halfWidth, max);
@@ -261,23 +261,23 @@ Map<String, num> _findSmallestWidthAlignment(Graph g, Map<GraphAlign, Map<String
   });
 }
 
-void _alignCoordinates(Map<GraphAlign, Map<String, num>> xss, Map<String, num> alignTo) {
-  List<num> alignToVals = List.from(alignTo.values);
-  num alignToMin = min(alignToVals)!, alignToMax = max(alignToVals) !;
+void _alignCoordinates(Map<GraphAlign, Map<String, double>> xss, Map<String, double> alignTo) {
+  List<double> alignToVals = List.from(alignTo.values);
+  double alignToMin = min(alignToVals)!.toDouble(), alignToMax = max(alignToVals)! .toDouble();
   for (var vert in ["u", "d"]) {
     for (var horiz in ["l", "r"]) {
       GraphAlign alignment = fromStr('${vert}t$horiz');
-      Map<String, num> xs = xss[alignment]!;
-      num delta;
+      Map<String, double> xs = xss[alignment]!;
+      double delta;
 
       if (xs == alignTo){
         continue;
       }
 
-      List<num> xsVals = List.from(xs.values);
+      List<double> xsVals = List.from(xs.values);
       delta = horiz == "l" ? alignToMin - min(xsVals)! : alignToMax - max(xsVals)!;
       if (delta!=0) {
-        Map<String, num> rm = {};
+        Map<String, double> rm = {};
         xs.forEach((key, value) {
           rm[key] = value + delta;
         });
@@ -287,17 +287,17 @@ void _alignCoordinates(Map<GraphAlign, Map<String, num>> xss, Map<String, num> a
   }
 }
 
-Map<String, num> _balance(Map<GraphAlign, Map<String, num>> xss, GraphAlign? align) {
-  Map<String, num> ulMap = xss[GraphAlign.utl]!;
-  Map<String, num> map = {};
+Map<String, double> _balance(Map<GraphAlign, Map<String, double>> xss, GraphAlign? align) {
+  Map<String, double> ulMap = xss[GraphAlign.utl]!;
+  Map<String, double> map = {};
   for (var key in ulMap.keys) {
-    num d;
+    double d;
     if (align != null) {
       d = xss[align]![key]!;
     } else {
-      List<num> xs=[];
+      List<double> xs=[];
       for(var ve in xss.values){
-        num? rn=ve[key];
+        double? rn=ve[key];
         if(rn!=null){
           xs.add(rn);
         }
@@ -310,10 +310,10 @@ Map<String, num> _balance(Map<GraphAlign, Map<String, num>> xss, GraphAlign? ali
   return map;
 }
 
-Map<String, num> positionX(Graph g) {
+Map<String, double> positionX(Graph g) {
   List<List<String>> layering = util.buildLayerMatrix(g);
   Map<String, Map<String, bool>> conflicts =_mergeMap( _findType1Conflicts(g, layering), _findType2Conflicts(g, layering));
-  Map<GraphAlign, Map<String, num>> xss = {};
+  Map<GraphAlign, Map<String, double>> xss = {};
   List<List<String>> adjustedLayering;
   for (var vert in ["u", "d"]) {
     adjustedLayering = vert == "u" ? layering :  layering.reverse2();
@@ -325,9 +325,9 @@ Map<String, num> positionX(Graph g) {
       }
       List<String> Function(String) neighborFn = (vert == "u" ? g.predecessors : g.successors);
       _InnerResult align = _verticalAlignment(g, adjustedLayering, conflicts, neighborFn);
-      Map<String, num> xs = _horizontalCompaction(g, adjustedLayering, align.root, align.align, horiz == "r");
+      Map<String, double> xs = _horizontalCompaction(g, adjustedLayering, align.root, align.align, horiz == "r");
       if (horiz == "r") {
-        Map<String, num> rm = {};
+        Map<String, double> rm = {};
         xs.forEach((key, value) {
           rm[key] = -value;
         });

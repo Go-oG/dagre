@@ -46,6 +46,6 @@ EdgeObj _findMinSlackEdge(Graph t, Graph g) {
 
 void _shiftRanks(Graph t, Graph g, num delta) {
   for (var v in t.nodes) {
-    g.node(v).rank = (g.node(v).rank + delta).toInt();
+    g.node(v).rank = ((g.node<NodeProps>(v).rankNull??0) + delta).toInt();
   }
 }

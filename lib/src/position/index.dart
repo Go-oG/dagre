@@ -1,3 +1,5 @@
+import 'package:dart_dagre/src/model/node_props.dart';
+
 import '../graph/graph.dart';
 import '../model/graph_props.dart';
 import '../util.dart' as util;
@@ -8,7 +10,7 @@ void position(Graph g) {
   g = util.asNonCompoundGraph(g);
   positionY(g);
   positionX(g).forEach((x, v) {
-    g.node(x).x = v;
+    g.node<NodeProps>(x).x = v;
   });
 }
 

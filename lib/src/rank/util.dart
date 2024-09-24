@@ -1,4 +1,5 @@
 import 'package:dart_dagre/src/model/edge_props.dart';
+import 'package:dart_dagre/src/model/node_props.dart';
 
 import '../graph/graph.dart';
 import '../util/list_util.dart';
@@ -14,6 +15,7 @@ Graph longestPath(Graph g) {
     num? rank = min(g.outEdges(v).map((e) {
       return dfs(e.w) - g.edge2<EdgeProps>(e).minLen;
     }));
+
     if (rank == null || rank.isInfinite) {
       rank = 0;
     }
@@ -25,5 +27,7 @@ Graph longestPath(Graph g) {
 }
 
 num slack(Graph g, EdgeObj e) {
-  return g.node(e.w).rank - g.node(e.v).rank - g.edge2<EdgeProps>(e).minLen;
+  var r1 = g.node<NodeProps>(e.w).rankNull ?? 0;
+  var r2 = g.node<NodeProps>(e.v).rankNull ?? 0;
+  return r1 - r2 - g.edge2<EdgeProps>(e).minLen;
 }

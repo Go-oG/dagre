@@ -67,6 +67,7 @@ void _updateInputGraph(Graph inputGraph, Graph layoutGraph) {
     if (inputLabel != null) {
       inputLabel.x = layoutLabel.x;
       inputLabel.y = layoutLabel.y;
+      inputLabel.rank = layoutLabel.rank;
 
       if (layoutGraph.children(v).isNotEmpty) {
         inputLabel.width = layoutLabel.width;
@@ -80,7 +81,7 @@ void _updateInputGraph(Graph inputGraph, Graph layoutGraph) {
     var layoutLabel = layoutGraph.edge2<EdgeProps>(e);
 
     inputLabel.points = layoutLabel.points;
-    if (layoutLabel.xNull != null) {
+    if (layoutLabel.x != null) {
       inputLabel.x = layoutLabel.x;
       inputLabel.y = layoutLabel.y;
     }
@@ -93,18 +94,17 @@ void _updateInputGraph(Graph inputGraph, Graph layoutGraph) {
 Graph _buildLayoutGraph(Graph inputGraph) {
   var g = Graph(isMultiGraph: true, isCompound: true);
   var graph = inputGraph.getLabel<GraphProps>();
-  GraphProps gp = GraphProps();
-  gp.rankSep = graph.rankSep;
-  gp.edgeSep = graph.edgeSep;
+  GraphProps gp = GraphProps(rankSep: 50, edgeSep: 20, nodeSep: 50, rankDir: RankDir.ttb);
+
   gp.nodeSep = graph.nodeSep;
-  gp.rankDir = graph.rankDir;
+  gp.edgeSep = graph.edgeSep;
+  gp.rankSep = graph.rankSep;
   gp.marginX = graph.marginX;
   gp.marginY = graph.marginY;
   gp.acyclicer = graph.acyclicer;
   gp.ranker = graph.ranker;
   gp.rankDir = graph.rankDir;
   gp.align = graph.align;
-
   g.setLabel(gp);
 
   for (var v in inputGraph.nodes) {
@@ -125,20 +125,25 @@ Graph _buildLayoutGraph(Graph inputGraph) {
 
   for (var e in inputGraph.edges) {
     EdgeProps? edge = inputGraph.edge<EdgeProps?>(e.v, e.w, e.id);
-    if(edge==null){
-      g.setEdge2(e, EdgeProps());
-    }else{
-      EdgeProps ep = EdgeProps();
+
+    EdgeProps ep = EdgeProps(
+      minLen: 1,
+      width: 0,
+      height: 0,
+      weight: 1,
+      labelOffset: 10,
+      labelPos: LabelPosition.right,
+    );
+    if (edge != null) {
       ep.minLen = edge.minLen;
       ep.weight = edge.weight;
-      ep.width =edge.width;
+      ep.width = edge.width;
       ep.height = edge.height;
       ep.labelOffset = edge.labelOffset;
       ep.labelPos = edge.labelPos;
-      g.setEdge2(e, ep);
     }
+    g.setEdge2(e, ep);
   }
-
   return g;
 }
 
@@ -159,37 +164,36 @@ void _makeSpaceForEdgeLabels(Graph g) {
 }
 
 void _injectEdgeLabelProxies(Graph g) {
-  for (var e in g.edges) {
+  for (var e in g.edgesIterable) {
     var edge = g.edge2<EdgeProps>(e);
-    if (edge.width != 0 && edge.height != 0) {
-      var v = g.node(e.v);
-      var w = g.node(e.w);
-      var label = NodeProps();
-      label.rank = ((w.rank - v.rank) / 2 + v.rank).toInt();
-      label.e = e;
+    if (edge.width >= 0 && edge.height >= 0) {
+      var v = g.node<NodeProps>(e.v);
+      var w = g.node<NodeProps>(e.w);
+      var label = NodeProps(rank: ((w.rank! - v.rank!) / 2 + v.rank!).toInt(), e: e);
       util.addDummyNode(g, Dummy.edgeProxy, label, "_ep");
     }
   }
 }
 
 void _assignRankMinMax(Graph g) {
-  num maxRank = 0;
-  for (var v in g.nodes) {
-    var node = g.node(v);
-    if (node.borderTop != null) {
-      node.minRank = g.node(node.borderTop!).rank;
-      node.maxRank = g.node(node.borderBottom!).rank;
-      maxRank = math.max(maxRank, node.maxRank);
+  int maxRank = 0;
+  for (var v in g.nodesIterable) {
+    var node = g.node<NodeProps>(v);
+    var value = node.borderTop;
+    if (value != null) {
+      node.minRank = g.node<NodeProps>(value).rank;
+      node.maxRank = g.node<NodeProps>(node.borderBottom!).rank;
+      maxRank = math.max(maxRank, node.maxRank!);
     }
   }
-  g.getLabel<GraphProps>().maxRank = maxRank.toInt();
+  g.getLabel<GraphProps>().maxRank = maxRank;
 }
 
 void _removeEdgeLabelProxies(Graph g) {
   for (var v in g.nodes) {
-    var node = g.node(v);
-    if (node.dummyNull == Dummy.edgeProxy) {
-      g.edge2<EdgeProps>(node.e).labelRank = node.rank;
+    var node = g.node<NodeProps>(v);
+    if (node.dummy == Dummy.edgeProxy) {
+      g.edge2<EdgeProps>(node.e!).labelRank = node.rank;
       g.removeNode(v);
     }
   }
@@ -206,23 +210,34 @@ void _translateGraph(Graph g) {
 
   ///attrs is NodeProps or EdgeProps
   getExtremes(attrs) {
-    num x = attrs.x;
-    num y = attrs.y;
-    num w = attrs.width;
-    num h = attrs.height;
-    minX = math.min(minX, x - w / 2);
-    maxX = math.max(maxX, (x + w / 2)).toInt();
-    minY = math.min(minY, y - h / 2);
-    maxY = math.max(maxY, (y + h / 2)).toInt();
+    if (attrs is NodeProps) {
+      double x = attrs.x!;
+      double y = attrs.y!;
+      double w = attrs.width;
+      double h = attrs.height;
+      minX = math.min(minX, x - w / 2);
+      maxX = math.max(maxX, (x + w / 2)).toInt();
+      minY = math.min(minY, y - h / 2);
+      maxY = math.max(maxY, (y + h / 2)).toInt();
+    } else if (attrs is EdgeProps) {
+      double x = attrs.x!;
+      double y = attrs.y!;
+      num w = attrs.width;
+      num h = attrs.height;
+      minX = math.min(minX, x - w / 2);
+      maxX = math.max(maxX, (x + w / 2)).toInt();
+      minY = math.min(minY, y - h / 2);
+      maxY = math.max(maxY, (y + h / 2)).toInt();
+    }
   }
 
-  for (var v in g.nodes) {
+  for (var v in g.nodesIterable) {
     getExtremes(g.node(v));
   }
 
-  for (var e in g.edges) {
+  for (var e in g.edgesIterable) {
     var edge = g.edge2<EdgeProps>(e);
-    if (edge.xNull != null) {
+    if (edge.x != null) {
       getExtremes(edge);
     }
   }
@@ -230,22 +245,23 @@ void _translateGraph(Graph g) {
   minX -= marginX;
   minY -= marginY;
 
-  for (var v in g.nodes) {
-    var node = g.node(v);
-    node.x -=  minX;
-    node.y -=minY;
+  for (var v in g.nodesIterable) {
+    var node = g.node<NodeProps>(v);
+    node.x = node.x! - minX;
+    node.y = node.y! - minY;
   }
-  for (var e in g.edges) {
+
+  for (var e in g.edgesIterable) {
     var edge = g.edge2<EdgeProps>(e);
     edge.points.each((p, p1) {
       p.x -= minX;
       p.y -= minY;
     });
-    if (edge.xNull != null) {
-      edge.x -=  minX;
+    if (edge.x != null) {
+      edge.x = edge.x! - minX;
     }
-    if (edge.yNull != null) {
-      edge.y -=  minY;
+    if (edge.y != null) {
+      edge.y = edge.y! - minY;
     }
   }
   graphLabel.width = maxX - minX + marginX;
@@ -253,69 +269,70 @@ void _translateGraph(Graph g) {
 }
 
 void _assignNodeIntersects(Graph g) {
-  for (var e in g.edges) {
+  for (var e in g.edgesIterable) {
     var edge = g.edge2<EdgeProps>(e);
-    var nodeV = g.node(e.v);
-    var nodeW = g.node(e.w);
+    var nodeV = g.node<NodeProps>(e.v);
+    var nodeW = g.node<NodeProps>(e.w);
     GraphPoint p1, p2;
     if (edge.points.isEmpty) {
-      edge.points = [];
-      p1 = GraphPoint(nodeW.x, nodeW.y);
-      p2 = GraphPoint(nodeV.x, nodeV.y);
+      p1 = GraphPoint(nodeW.x!.toDouble(), nodeW.y!.toDouble());
+      p2 = GraphPoint(nodeV.x!.toDouble(), nodeV.y!.toDouble());
     } else {
       p1 = edge.points[0];
-      p2 = edge.points[edge.points.length - 1];
+      p2 = edge.points.last;
     }
 
-    edge.points.insert(0, util.intersectRect(GraphRect(nodeV.x, nodeV.y, nodeV.width, nodeV.height), p1));
-    edge.points.add(util.intersectRect(GraphRect(nodeW.x, nodeW.y, nodeW.width, nodeW.height), p2));
+    edge.points.insert(0, util.intersectRect(GraphRect(nodeV.x!, nodeV.y!, nodeV.width, nodeV.height), p1));
+    edge.points.add(util.intersectRect(GraphRect(nodeW.x!, nodeW.y!, nodeW.width, nodeW.height), p2));
   }
 }
 
 void _fixupEdgeLabelCoords(Graph g) {
-  for (var e in g.edges) {
+  for (var e in g.edgesIterable) {
     var edge = g.edge2<EdgeProps>(e);
-    if (edge.xNull != null) {
+    var xValue = edge.x;
+    if (xValue != null) {
       if (edge.labelPos == LabelPosition.left || edge.labelPos == LabelPosition.right) {
         edge.width -=edge.labelOffset;
       }
+
       LabelPosition lp = edge.labelPos;
       if (lp == LabelPosition.left) {
-        edge.x -= - (edge.width / 2 + edge.labelOffset);
+        edge.x = xValue - (edge.width / 2 + edge.labelOffset);
       } else if (lp == LabelPosition.right) {
-        edge.x += (edge.width / 2 + edge.labelOffset);
+        edge.x = xValue + (edge.width / 2 + edge.labelOffset);
       }
     }
   }
 }
 
 void _reversePointsForReversedEdges(Graph g) {
-  for (var e in g.edges) {
+  for (var e in g.edgesIterable) {
     var edge = g.edge2<EdgeProps>(e);
-    if (edge.reversedNull!=null&&edge.reversed) {
+    if (edge.reversed==true) {
       edge.points = List.from(edge.points.reversed);
     }
   }
 }
 
 void _removeBorderNodes(Graph g) {
-  for (var v in g.nodes) {
+  for (var v in g.nodesIterable) {
     if (g.children(v).isNotEmpty) {
-      var node = g.node(v);
-      var t = g.node(node.borderTop!);
-      var b = g.node(node.borderBottom!);
-      var l = g.node(node.borderLeft.last);
-      var r = g.node(node.borderRight.last);
+      var node = g.node<NodeProps>(v);
+      var t = g.node<NodeProps>(node.borderTop!);
+      var b = g.node<NodeProps>(node.borderBottom!);
+      var l = g.node<NodeProps>(node.borderLeft.last);
+      var r = g.node<NodeProps>(node.borderRight.last);
 
-      node.width = (r.x - l.x).abs();
-      node.height = (b.y - t.y).abs();
-      node.x = l.x + node.width / 2;
-      node.y = t.y + node.height / 2;
+      node.width = (r.x! - l.x!).abs();
+      node.height = (b.y! - t.y!).abs();
+      node.x = l.x! + node.width / 2;
+      node.y = t.y! + node.height / 2;
     }
   }
 
   for (var v in g.nodes) {
-    if (g.node(v).dummyNull == Dummy.border) {
+    if (g.node<NodeProps>(v).dummy == Dummy.border) {
       g.removeNode(v);
     }
   }
@@ -324,7 +341,7 @@ void _removeBorderNodes(Graph g) {
 void _removeSelfEdges(Graph g) {
   for (var e in g.edges) {
     if (e.v == e.w) {
-      var node = g.node(e.v);
+      var node = g.node<NodeProps>(e.v);
       node.selfEdges.add(SelfEdgeData(e, g.edge2<EdgeProps>(e)));
       g.removeEdge2(e);
     }
@@ -336,7 +353,7 @@ void _insertSelfEdges(Graph g) {
   for (var layer in layers) {
     var orderShift = 0;
     layer.each((v, i) {
-      var node = g.node(v);
+      var node = g.node<NodeProps>(v);
       node.order = i + orderShift;
       for (var selfEdge in node.selfEdges) {
         NodeProps np = NodeProps();
@@ -346,33 +363,35 @@ void _insertSelfEdges(Graph g) {
         np.order = i + (++orderShift);
         np.e = selfEdge.e;
         np.label = selfEdge.data;
+
         util.addDummyNode(g, Dummy.selfEdge, np, "_se");
       }
-      node.selfEdges.clear();
+      node.selfEdges=[];
     });
+
   }
 }
 
 void _positionSelfEdges(Graph g) {
   for (var v in g.nodes) {
-    var node = g.node(v);
-    if (node.dummyNull == Dummy.selfEdge) {
-      var selfNode = g.node(node.e.v);
-      var x = selfNode.x + selfNode.width / 2;
-      var y = selfNode.y;
-      var dx = node.x - x;
+    var node = g.node<NodeProps>(v);
+    if (node.dummy == Dummy.selfEdge) {
+      var selfNode = g.node<NodeProps>(node.e!.v);
+      var x = selfNode.x! + selfNode.width / 2;
+      var y = selfNode.y!;
+      var dx = node.x! - x;
       var dy = selfNode.height / 2;
-      g.setEdge2(node.e, node.label);
+      g.setEdge2(node.e!, node.label);
       g.removeNode(v);
-      node.label.points = [
+      node.label?.points = [
         GraphPoint(x + 2 * dx / 3, y - dy),
         GraphPoint(x + 5 * dx / 6, y - dy),
         GraphPoint(x + dx, y),
         GraphPoint(x + 5 * dx / 6, y + dy),
         GraphPoint(x + 2 * dx / 3, y + dy)
       ];
-      node.label.x = node.x;
-      node.label.y = node.y;
+      node.label?.x = node.x;
+      node.label?.y = node.y;
     }
   }
 }

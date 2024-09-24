@@ -89,9 +89,6 @@ Map<String, Map<String, double>> predecessorWeights(Graph g) {
 GraphPoint intersectRect(GraphRect rect, GraphPoint point) {
   var x = rect.x;
   var y = rect.y;
-
-  // Rectangle intersection algorithm from:
-  // http://math.stackexchange.com/questions/108113/find-edge-between-two-boxes
   var dx = point.x - x;
   var dy = point.y - y;
   var w = rect.width / 2;
@@ -126,9 +123,9 @@ List<List<String>> buildLayerMatrix(Graph g) {
   }
   for (var v in g.nodes) {
     var node = g.node<NodeProps>(v);
-    int? rank = node.rankNull;
+    int? rank = node.rank;
     if (rank != null) {
-      layering[rank][node.order] = v;
+      layering[rank][node.order!] = v;
     }
   }
   List<List<String>> rl = [];
@@ -141,8 +138,7 @@ List<List<String>> buildLayerMatrix(Graph g) {
 void normalizeRanks(Graph g) {
   var nodeRanks = g.nodes.map((v) {
     var rank = g
-        .node<NodeProps>(v)
-        .rankNull;
+        .node<NodeProps>(v).rank;
     if (rank == null) {
       return (double.maxFinite - 2).toInt();
     }
@@ -157,8 +153,8 @@ void normalizeRanks(Graph g) {
   }
   for (var v in g.nodes) {
     var node = g.node<NodeProps>(v);
-    if (node.rankNull != null) {
-      node.rank -= min;
+    if (node.rank != null) {
+      node.rank = node.rank! - min;
     }
   }
 }
@@ -168,7 +164,7 @@ void removeEmptyRanks(Graph g) {
   int offset = (min(rankList) ?? 0).toInt();
   Array<List<String>> layers = Array();
   for (var v in g.nodes) {
-    var rank = g.node<NodeProps>(v).rank - offset;
+    var rank = g.node<NodeProps>(v).rank! - offset;
     if (!layers.has(rank)) {
       layers[rank] = [];
     }
@@ -183,7 +179,8 @@ void removeEmptyRanks(Graph g) {
       --delta;
     } else if ((vs!=null&&vs.isNotEmpty)&&delta != 0) {
       for (var v in vs) {
-        g.node<NodeProps>(v).rank +=delta;
+        var p = g.node<NodeProps>(v);
+        p.rank = p.rank! + delta;
       }
     }
   });
@@ -200,7 +197,7 @@ String addBorderNode(Graph g, [String? prefix, int? rank, int? order]) {
 
 int? maxRank(Graph g) {
   return max(g.nodes.map2((v, i) {
-    var r= g.node<NodeProps>(v).rankNull;
+    var r= g.node<NodeProps>(v).rank;
     r ??= (double.maxFinite-20).toInt();
     return r;
   }))?.toInt();

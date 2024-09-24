@@ -1,5 +1,6 @@
 library dagre;
 
+import 'dart:convert';
 import 'dart:ui';
 
 import 'src/layout.dart' as layer;
@@ -26,33 +27,37 @@ export 'src/model/enums/ranker.dart';
 DagreResult layout(
   List<DagreNode> nodeList,
   List<DagreEdge> edgeList,
-  Config config, {
+  GraphConfig config, {
   bool multiGraph = false,
   bool compoundGraph = true,
   bool directedGraph = true,
+  NodeProps Function(String)? nodeLabelFun,
+  EdgeProps Function(String, String, String?)? edgeLabelFun,
 }) {
   Graph graph = Graph(isCompound: compoundGraph, isMultiGraph: multiGraph, isDirected: directedGraph);
-
-  Map<String, DagreNode> nodeMap = {};
-  Map<String, DagreEdge> edgeMap = {};
+  if (nodeLabelFun != null) {
+    graph.setDefaultNodePropsFun(nodeLabelFun);
+  }
+  if (edgeLabelFun != null) {
+    graph.setDefaultEdgePropsFun(edgeLabelFun);
+  }
 
   for (var ele in nodeList) {
-    nodeMap[ele.id] = ele;
     graph.setNode(ele.id, NodeProps(width: ele.width, height: ele.height));
   }
 
   for (var edge in edgeList) {
     String v = edge.source.id;
     String w = edge.target.id;
-    EdgeProps props = EdgeProps(minLen: edge.minLen, weight: edge.weight);
-    props.width = edge.width;
-    props.height = edge.height;
-    props.labelOffset = edge.labelOffset;
-    props.labelPos = edge.labelPos;
+    EdgeProps props = EdgeProps(
+      minLen: edge.minLen,
+      weight: edge.weight,
+      width: edge.width,
+      height: edge.height,
+      labelOffset: edge.labelOffset,
+      labelPos: edge.labelPos,
+    );
     graph.setEdge(v, w, value: props, id: edge.id);
-    nodeMap[edge.source.id] = edge.source;
-    nodeMap[edge.target.id] = edge.target;
-    edgeMap[edge.id] = edge;
   }
 
   GraphProps props = GraphProps();
@@ -65,9 +70,8 @@ DagreResult layout(
   props.rankSep = config.rankSep;
   props.edgeSep = config.edgeSep;
   props.nodeSep = config.nodeSep;
-  props.width = config.width;
-  props.height = config.height;
   graph.setLabel(props);
+
   layer.layout(graph);
 
   DagreResult result = DagreResult(
@@ -85,24 +89,21 @@ DagreResult layout(
 
   for (var v in graph.edges) {
     var e = graph.edge2<EdgeProps>(v);
-    EdgeResult result = EdgeResult(e.x.toDouble(), e.y.toDouble());
+    EdgeResult result = EdgeResult(e.x!.toDouble(), e.y!.toDouble());
     for (var ep in e.points) {
       result.points.add(Offset(ep.x.toDouble(), ep.y.toDouble()));
     }
   }
-
   return result;
 }
 
-class DagreNode<T> {
+class DagreNode {
   final String id;
   final double width;
   final double height;
-  final T? data;
 
   DagreNode(
     this.id, {
-    this.data,
     this.width = 0,
     this.height = 0,
   });
@@ -118,8 +119,8 @@ class DagreNode<T> {
   }
 }
 
-class DagreEdge<T> {
-  final String id;
+class DagreEdge {
+  final String? id;
   final DagreNode source;
   final DagreNode target;
   final double minLen;
@@ -129,33 +130,20 @@ class DagreEdge<T> {
   final double width;
   final double height;
 
-  final T? data;
-
   DagreEdge(
-    this.id,
     this.source,
     this.target, {
-    this.data,
     this.minLen = 1,
     this.weight = 1,
     this.labelOffset = 10,
     this.labelPos = LabelPosition.right,
     this.width = 0,
     this.height = 0,
+    this.id,
   });
-
-  @override
-  int get hashCode {
-    return id.hashCode;
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return other is DagreEdge && other.id == id;
-  }
 }
 
-class Config {
+class GraphConfig {
   final RankDir rankDir;
   final GraphAlign? align;
 
@@ -180,11 +168,7 @@ class Config {
   ///控制为图中每个节点分配层级的算法类型
   final Ranker ranker;
 
-  ///设置布局的宽度和高度
-  final double width;
-  final double height;
-
-  Config({
+  GraphConfig({
     this.rankDir = RankDir.ttb,
     this.align,
     this.marginX = 0,
@@ -194,11 +178,8 @@ class Config {
     this.nodeSep = 10,
     this.acyclicer = Acyclicer.none,
     this.ranker = Ranker.networkSimplex,
-    this.width = 0,
-    this.height = 0,
   });
 }
-
 
 class DagreResult {
   final double graphWidth;
@@ -207,6 +188,17 @@ class DagreResult {
   final Map<String, EdgeResult> edgePosMap = {};
 
   DagreResult(this.graphWidth, this.graphHeight);
+
+  @override
+  String toString() {
+    Map<String, dynamic> map = {};
+    map["width"] = graphWidth;
+    map["height"] = graphHeight;
+    Map<String, String> rm = nodePosMap.map((k, v) => MapEntry(k, v.toString()));
+    map["nodes"] = rm;
+    map["edges"] = edgePosMap.map((k, v) => MapEntry(k, v.toString()));
+    return jsonEncode(map);
+  }
 }
 
 class EdgeResult {
@@ -215,4 +207,9 @@ class EdgeResult {
   final List<Offset> points = [];
 
   EdgeResult(this.x, this.y);
+
+  @override
+  String toString() {
+    return "x:$x y:$y points:${points.toString()}";
+  }
 }

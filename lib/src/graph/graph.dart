@@ -1,3 +1,4 @@
+import 'package:dart_dagre/src/model/node_props.dart';
 import 'package:dart_dagre/src/util/list_util.dart';
 import 'package:flutter/widgets.dart';
 import '../model/edge_props.dart';
@@ -49,8 +50,8 @@ class Graph {
     return null;
   };
 
-  dynamic Function(String, String, String?) _defaultEdgeLabelFun = (v, w, id) {
-    return null;
+  Object Function(String, String, String?) _defaultEdgeLabelFun = (v, w, id) {
+    return EdgeProps(v: v, w: w, id: id);
   };
 
   Graph({
@@ -76,7 +77,7 @@ class Graph {
     return this;
   }
 
-  Graph setDefaultEdgePropsFun(dynamic Function(String, String, String?) newDefault) {
+  Graph setDefaultEdgePropsFun(Object Function(String, String, String?) newDefault) {
     _defaultEdgeLabelFun = newDefault;
     return this;
   }
@@ -88,6 +89,8 @@ class Graph {
   int get nodeCount => _nodeCount;
 
   List<String> get nodes => List.from(_nodes.keys);
+
+  Iterable<String> get nodesIterable => _nodes.keys;
 
   List<String> get sources {
     return nodes.filter((v) {
@@ -155,7 +158,7 @@ class Graph {
         _children.remove(v);
       }
 
-      List<EdgeObj> kl = List.from((_in[v] ?? {}).keys);
+      List<String> kl = List.from((_in[v] ?? {}).keys);
       for (var e in kl) {
         removeEdge2(_edgeObjs[e]);
       }
@@ -307,6 +310,10 @@ class Graph {
   ///返回所有的EdgeObj对象
   List<EdgeObj> get edges {
     return List.from(_edgeObjs.values);
+  }
+
+  Iterable<EdgeObj> get edgesIterable {
+    return _edgeObjs.values;
   }
 
   ///根据EdgeObj 对象获取对应的Value
