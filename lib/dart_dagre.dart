@@ -100,7 +100,12 @@ class DagreNode<T> {
   final double height;
   final T? data;
 
-  DagreNode(this.id, this.width, this.height, {this.data});
+  DagreNode(
+    this.id, {
+    this.data,
+    this.width = 0,
+    this.height = 0,
+  });
 
   @override
   int get hashCode {
@@ -176,8 +181,8 @@ class Config {
   final Ranker ranker;
 
   ///设置布局的宽度和高度
-  final double? width;
-  final double? height;
+  final double width;
+  final double height;
 
   Config({
     this.rankDir = RankDir.ttb,
@@ -189,10 +194,11 @@ class Config {
     this.nodeSep = 10,
     this.acyclicer = Acyclicer.none,
     this.ranker = Ranker.networkSimplex,
-    this.width,
-    this.height,
+    this.width = 0,
+    this.height = 0,
   });
 }
+
 
 class DagreResult {
   final double graphWidth;

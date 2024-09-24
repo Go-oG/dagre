@@ -62,7 +62,7 @@ void _runLayout(Graph g) {
 void _updateInputGraph(Graph inputGraph, Graph layoutGraph) {
   for (var v in inputGraph.nodes) {
     var inputLabel = inputGraph.node<NodeProps?>(v);
-    var layoutLabel = layoutGraph.node(v);
+    var layoutLabel = layoutGraph.node<NodeProps>(v);
 
     if (inputLabel != null) {
       inputLabel.x = layoutLabel.x;
@@ -100,7 +100,6 @@ Graph _buildLayoutGraph(Graph inputGraph) {
   gp.rankDir = graph.rankDir;
   gp.marginX = graph.marginX;
   gp.marginY = graph.marginY;
-
   gp.acyclicer = graph.acyclicer;
   gp.ranker = graph.ranker;
   gp.rankDir = graph.rankDir;

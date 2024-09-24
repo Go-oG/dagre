@@ -376,7 +376,7 @@ num Function(Graph, String, String) _sep(num nodeSep, num edgeSep, bool reverseS
 }
 
 num _width(Graph g, String v) {
-  return g.node(v).width;
+  return g.node<NodeProps>(v).width;
 }
 
 Map<String, Map<String, bool>> _mergeMap(Map<String, Map<String, bool>> m1,Map<String, Map<String, bool>> m2){
