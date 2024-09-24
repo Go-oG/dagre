@@ -67,10 +67,13 @@ DagreResult layout(
   props.nodeSep = config.nodeSep;
   props.width = config.width;
   props.height = config.height;
-  graph.setGraph(props);
+  graph.setLabel(props);
   layer.layout(graph);
 
-  DagreResult result = DagreResult(graph.graph.width ?? 0, graph.graph.height ?? 0);
+  DagreResult result = DagreResult(
+    graph.getLabel<GraphProps>().width ?? 0,
+    graph.getLabel<GraphProps>().height ?? 0,
+  );
   for (var v in graph.nodes) {
     var node = graph.node(v);
     result.nodePosMap[v] = Rect.fromCenter(
@@ -81,7 +84,7 @@ DagreResult layout(
   }
 
   for (var v in graph.edges) {
-    var e = graph.edge(v);
+    var e = graph.edge2<EdgeProps>(v);
     EdgeResult result = EdgeResult(e.x.toDouble(), e.y.toDouble());
     for (var ep in e.points) {
       result.points.add(Offset(ep.x.toDouble(), ep.y.toDouble()));
@@ -93,8 +96,8 @@ DagreResult layout(
 
 class DagreNode<T> {
   final String id;
-  final num width;
-  final num height;
+  final double width;
+  final double height;
   final T? data;
 
   DagreNode(this.id, this.width, this.height, {this.data});
@@ -114,12 +117,12 @@ class DagreEdge<T> {
   final String id;
   final DagreNode source;
   final DagreNode target;
-  final num minLen;
-  final num weight;
-  final num labelOffset;
+  final double minLen;
+  final double weight;
+  final double labelOffset;
   final LabelPosition labelPos;
-  final num width;
-  final num height;
+  final double width;
+  final double height;
 
   final T? data;
 
@@ -152,19 +155,19 @@ class Config {
   final GraphAlign? align;
 
   ///节点水平之间的间距
-  final num marginX;
+  final double marginX;
 
   ///节点竖直之间的间距
-  final num marginY;
+  final double marginY;
 
   /// 不同rank层之间的间距
-  final num rankSep;
+  final double rankSep;
 
   ///边之间的水平间距
-  final num edgeSep;
+  final double edgeSep;
 
   ///节点之间水平间距
-  final num nodeSep;
+  final double nodeSep;
 
   ///控制查找图形时使用的方法
   final Acyclicer acyclicer;
@@ -173,8 +176,8 @@ class Config {
   final Ranker ranker;
 
   ///设置布局的宽度和高度
-  final num? width;
-  final num? height;
+  final double? width;
+  final double? height;
 
   Config({
     this.rankDir = RankDir.ttb,
@@ -192,8 +195,8 @@ class Config {
 }
 
 class DagreResult {
-  final num graphWidth;
-  final num graphHeight;
+  final double graphWidth;
+  final double graphHeight;
   final Map<String, Rect> nodePosMap = {};
   final Map<String, EdgeResult> edgePosMap = {};
 

@@ -1,4 +1,5 @@
 import '../graph/graph.dart';
+import '../model/graph_props.dart';
 import '../util.dart' as util;
 import '../util/list_util.dart';
 import 'bk.dart';
@@ -13,7 +14,7 @@ void position(Graph g) {
 
 void positionY(Graph g) {
   List<List<String>> layering = util.buildLayerMatrix(g);
-  var rankSep = g.graph.rankSep;
+  var rankSep = g.getLabel<GraphProps>().rankSep;
   num prevY = 0;
   for (var layer in layering) {
     var maxHeight = max<num>(List.from(layer.map((v) {

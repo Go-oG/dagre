@@ -2,8 +2,8 @@ import 'dart:math' as math;
 import 'package:dart_dagre/src/model/enums/align.dart';
 import 'package:dart_dagre/src/model/enums/dummy.dart';
 import 'package:dart_dagre/src/model/enums/label_pos.dart';
-import 'package:dart_dagre/src/model/edge.dart';
 import 'package:dart_dagre/src/model/edge_props.dart';
+import 'package:dart_dagre/src/model/graph_props.dart';
 import 'package:dart_dagre/src/model/node_props.dart';
 import 'package:dart_dagre/src/util/list_util.dart';
 
@@ -195,16 +195,16 @@ Map<String, num> _horizontalCompaction(
 
   // First pass, assign smallest coordinates
   pass1(String elem) {
-    List<Edge> lp = blockG.inEdges(elem);
+    List<EdgeObj> lp = blockG.inEdges(elem);
     xs[elem] = lp.reduce2<num>((e, acc) {
-      return math.max(acc, (xs[e.v]! + blockG.edge(e).value));
+      return math.max(acc, (xs[e.v]! + blockG.edge2<EdgeProps>(e).value));
     }, 0);
   }
 
   // Second pass, assign greatest coordinates
   pass2(String elem) {
     num minv = blockG.outEdges(elem).reduce2((e, acc) {
-      return math.min(acc, xs[e.w]! - blockG.edge(e).value);
+      return math.min(acc, xs[e.w]! - blockG.edge2<EdgeProps>(e).value);
     }, double.maxFinite);
 
     var node = g.node(elem);
@@ -225,7 +225,7 @@ Map<String, num> _horizontalCompaction(
 
 Graph _buildBlockGraph(Graph g, List<List<String>> layering, Map<String, String> root, bool reverseSep) {
   Graph blockGraph = Graph();
-  var graphLabel = g.graph;
+  var graphLabel = g.getLabel<GraphProps>();
   var sepFn = _sep(graphLabel.nodeSep, graphLabel.edgeSep, reverseSep);
   for (var layer in layering) {
     String? u;
@@ -234,9 +234,9 @@ Graph _buildBlockGraph(Graph g, List<List<String>> layering, Map<String, String>
       blockGraph.setNode(vRoot);
       if (u != null) {
         var uRoot = root[u]!;
-        num? prevMax = blockGraph.edgeOrNull(uRoot, vRoot)?.value;
+        double? prevMax = blockGraph.edge<EdgeProps?>(uRoot, vRoot)?.value;
         EdgeProps p = EdgeProps();
-        p.value = math.max(sepFn.call(g, v, u), prevMax??0);
+        p.value = math.max(sepFn.call(g, v, u), prevMax??0).toDouble();
         blockGraph.setEdge(uRoot, vRoot, value: p);
       }
       u = v;
@@ -338,7 +338,7 @@ Map<String, num> positionX(Graph g) {
   }
   var smallestWidth = _findSmallestWidthAlignment(g, xss);
   _alignCoordinates(xss, smallestWidth);
-  return _balance(xss, g.graph.align);
+  return _balance(xss, g.getLabel<GraphProps>().align);
 }
 
 num Function(Graph, String, String) _sep(num nodeSep, num edgeSep, bool reverseSep) {

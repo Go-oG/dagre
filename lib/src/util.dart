@@ -10,7 +10,8 @@ import 'package:dart_dagre/src/util/list_util.dart';
 import 'package:dart_dagre/src/util/util.dart';
 import 'package:flutter/widgets.dart';
 
-import 'model/tmp/split.dart';
+import 'model/graph_props.dart';
+import 'model/tmp/split.dart' as sp;
 import 'model/enums/dummy.dart';
 
 String addDummyNode(Graph g, Dummy type, NodeProps attrs, String? name) {
@@ -28,13 +29,13 @@ String addDummyNode(Graph g, Dummy type, NodeProps attrs, String? name) {
  * associated with multi-edges.
  */
 Graph simplify(Graph g) {
-  var simplified = Graph().setGraph(g.graph);
+  var simplified = Graph().setLabel(g.getLabel<GraphProps>());
   for (var v in g.nodes) {
     simplified.setNode(v,g.node(v));
   }
   for (var e in g.edges) {
-    var simpleLabel = simplified.edgeOrNull(e.v, e.w, e.id) ?? EdgeProps(weight: 0, minLen: 1);
-    var label = g.edge(e);
+    var simpleLabel = simplified.edge<EdgeProps?>(e.v, e.w, e.id) ?? EdgeProps(weight: 0, minLen: 1);
+    var label = g.edge2<EdgeProps>(e);
     EdgeProps p = EdgeProps(weight: simpleLabel.weight + label.weight, minLen: math.max(simpleLabel.minLen, label.minLen));
     simplified.setEdge(e.v, e.w, value: p);
   }
@@ -42,16 +43,16 @@ Graph simplify(Graph g) {
 }
 
 Graph asNonCompoundGraph(Graph g) {
-  var simplified = Graph(isMultiGraph: g.isMultiGraph).setGraph(g.graph);
+  var simplified = Graph(isMultiGraph: g.isMultiGraph).setLabel(g.getLabel<GraphProps>());
   for (var v in g.nodes) {
     var children=g.children(v);
     if (children.isEmpty) {
-      var nv=g.nodeNull(v);
+      var nv=g.node<NodeProps>(v);
       simplified.setNode(v,nv);
     }
   }
   for (var e in g.edges) {
-    simplified.setEdge2(e, g.edge(e));
+    simplified.setEdge2(e, g.edge2(e));
   }
   return simplified;
 }
@@ -75,7 +76,7 @@ GraphPoint intersectRect(GraphRect rect, GraphPoint point) {
     throw FlutterError("Not possible to find intersection inside of the rectangle");
   }
 
-  num sx, sy;
+  double sx, sy;
   if (dy.abs() * w > dx.abs() * h) {
     if (dy < 0) {
       h = -h;
@@ -144,7 +145,7 @@ void removeEmptyRanks(Graph g) {
   }
 
   var delta = 0;
-  var nodeRankFactor = g.graph.nodeRankFactor;
+  var nodeRankFactor = g.getLabel<GraphProps>().nodeRankFactor;
 
   layers.forEach((vs, i) {
     if ((vs == null||vs.isEmpty) && i % nodeRankFactor != 0) {
@@ -168,17 +169,13 @@ String addBorderNode(Graph g, [String? prefix, int? rank, int? order]) {
 
 int? maxRank(Graph g) {
   return max(g.nodes.map2((v, i) {
-    return g.node(v).rankNull;
+    return g.node<NodeProps>(v).rankNull;
   }))?.toInt();
 }
 
-/*
- * Partition a collection into two groups: `lhs` and `rhs`. If the supplied
- * function returns true for an entry it goes into `lhs`. Otherwise it goes
- * into `rhs.
- */
-Split<T> partition<T>(List<T> collection, bool Function(T) fn) {
-  Split<T> split = Split();
+
+sp.Split<T> partition<T>(List<T> collection, bool Function(T) fn) {
+  sp.Split<T> split = sp.Split();
   for (var value in collection) {
     if (fn(value)) {
       split.lhs.add(value);
@@ -186,6 +183,5 @@ Split<T> partition<T>(List<T> collection, bool Function(T) fn) {
       split.rhs.add(value);
     }
   }
-
   return split;
 }

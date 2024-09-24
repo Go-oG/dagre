@@ -1,5 +1,5 @@
 class GraphPoint{
-  num x;
-  num y;
+  double x;
+  double y;
   GraphPoint(this.x,this.y);
 }

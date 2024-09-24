@@ -3,39 +3,39 @@ import 'package:dart_dagre/src/model/graph_point.dart';
 import 'enums/label_pos.dart';
 
 class EdgeProps {
-  num minLen = 1;
-  num weight = 1;
-  num width = 0;
-  num height = 0;
-  num labelOffset = 10;
+  double minLen = 1;
+  double weight = 1;
+  double width = 0;
+  double height = 0;
+  double labelOffset = 10;
   LabelPosition labelPos = LabelPosition.right;
 
   ///其它属性
   String? id;
-  num? _x;
-  num? _y;
+  double? _x;
+  double? _y;
   String? _v;
   String? _w;
 
-  num? _barycenter;
-  num? _cutValue;
+  double? _barycenter;
+  double? _cutValue;
   int? _labelRank;
   bool? _nestingEdge;
   bool? _reversed;
   String? _forwardName;
-  num value = 0;
+  double value = 0;
   List<GraphPoint> points = [];
 
   EdgeProps({
     String? id,
     String? v,
     String? w,
-    num? weight,
-    num? barycenter,
-    num? minLen,
-    num? cutValue,
+    double? weight,
+    double? barycenter,
+    double? minLen,
+    double? cutValue,
     bool? nestingEdge,
-    num? value,
+    double? value,
   }) {
     if (id != null) {
       this.id = id;
@@ -79,13 +79,13 @@ class EdgeProps {
 
   String get w => _w!;
 
-  num get x => _x!;
+  double get x => _x!;
 
-  num get y => _y!;
+  double get y => _y!;
 
-  num get barycenter => _barycenter!;
+  double get barycenter => _barycenter!;
 
-  num get cutValue => _cutValue!;
+  double get cutValue => _cutValue!;
 
   int get labelRank => _labelRank!;
 
@@ -95,9 +95,9 @@ class EdgeProps {
 
   String get forwardName => _forwardName!;
 
-  num? get xNull => _x;
+  double? get xNull => _x;
 
-  num? get yNull => _y;
+  double? get yNull => _y;
 
   int? get labelRankNull => _labelRank;
 
@@ -109,13 +109,13 @@ class EdgeProps {
 
   set w(String? vv) => _w = vv;
 
-  set x(num? v) => _x = v;
+  set x(double? v) => _x = v;
 
-  set y(num? v) => _y = v;
+  set y(double? v) => _y = v;
 
-  set barycenter(num? v) => _barycenter = v;
+  set barycenter(double? v) => _barycenter = v;
 
-  set cutValue(num? v) => _cutValue = v;
+  set cutValue(double? v) => _cutValue = v;
 
   set labelRank(int? v) => _labelRank = v;
 

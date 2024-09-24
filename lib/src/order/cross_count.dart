@@ -1,3 +1,5 @@
+import 'package:dart_dagre/src/model/edge_props.dart';
+
 import '../graph/graph.dart';
 
 num crossCount(Graph g, List<List<String>> layering) {
@@ -17,7 +19,7 @@ num _twoLayerCrossCount(Graph g, List<String> northLayer, List<String> southLaye
   for (var ele in northLayer) {
     List<_InnerResult> v = List.from(g.outEdges(ele).map((e) {
       int pos = southPos[e.w]!;
-      num weight = g.edge(e).weight;
+      num weight = g.edge2<EdgeProps>(e).weight;
       return _InnerResult(pos, weight);
     }));
     southEntries.addAll(v);

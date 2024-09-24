@@ -1,4 +1,5 @@
 import 'package:dart_dagre/src/model/enums/relationship.dart';
+import 'package:dart_dagre/src/model/graph_props.dart';
 import 'package:dart_dagre/src/order/sort_subgraph.dart';
 import 'package:dart_dagre/src/util/list_util.dart';
 import '../graph/graph.dart';
@@ -43,7 +44,7 @@ List<Graph> _buildLayerGraphs(Graph g, List<int> ranks, Relationship ship) {
 void _sweepLayerGraphs(List<Graph> layerGraphs,bool biasRight) {
   var cg = Graph();
   for (var lg in layerGraphs) {
-    var root = lg.graph.root!;
+    var root = lg.getLabel<GraphProps>().root!;
     ResolveConflictsResult sorted = sortSubgraph(lg, root, cg, biasRight);
     sorted.vs.each((v, i) {
       lg.node(v).order = i;

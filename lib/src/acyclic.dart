@@ -1,20 +1,21 @@
 import 'package:dart_dagre/src/graph/graph.dart';
+import 'package:dart_dagre/src/model/edge_props.dart';
 import 'package:dart_dagre/src/model/enums/acyclicer.dart';
-import 'package:dart_dagre/src/model/edge.dart';
 import 'package:dart_dagre/src/util/util.dart';
 
 import 'greedy_fas.dart';
+import 'model/graph_props.dart';
 
 void run(Graph g) {
-  num Function(Edge) weightFn(Graph g2) {
+  num Function(EdgeObj) weightFn(Graph g2) {
     return (e) {
-      return g2.edge(e).weight;
+      return g2.edge2<EdgeProps>(e).weight;
     };
   }
 
-  List<Edge> fas = (g.graph.acyclicer==Acyclicer.greedy ? greedyFAS(g, weightFn(g)) : dfsFAS(g));
+  List<EdgeObj> fas = (g.getLabel<GraphProps>().acyclicer==Acyclicer.greedy ? greedyFAS(g, weightFn(g)) : dfsFAS(g));
   for (var e in fas) {
-    var label = g.edge(e);
+    var label = g.edge2<EdgeProps>(e);
     g.removeEdge2(e);
     label.forwardName = e.id;
     label.reversed = true;
@@ -22,8 +23,8 @@ void run(Graph g) {
   }
 }
 
-List<Edge> dfsFAS(Graph g) {
-  List<Edge> fas = [];
+List<EdgeObj> dfsFAS(Graph g) {
+  List<EdgeObj> fas = [];
   Map<String, bool> stack = {};
   Map<String, bool> visited = {};
 
@@ -49,7 +50,7 @@ List<Edge> dfsFAS(Graph g) {
 
 void undo(Graph g) {
   for (var e in g.edges) {
-    var label = g.edge(e);
+    var label = g.edge2<EdgeProps>(e);
     if (label.reversedNull ?? false) {
       g.removeEdge2(e);
       var forwardName = label.forwardName;

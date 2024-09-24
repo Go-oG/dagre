@@ -1,35 +1,34 @@
 import 'package:dart_dagre/src/model/enums/dummy.dart';
 import 'package:dart_dagre/src/model/enums/label_pos.dart';
 import 'package:dart_dagre/src/model/edge_props.dart';
-import 'package:dart_dagre/src/model/edge.dart';
-
+import '../graph/graph.dart';
 import 'tmp/self_edge_data.dart';
 
 class NodeProps {
-  num? _x;
-  num? _y;
-  num width=0;
-  num height=0;
+  double? _x;
+  double? _y;
+  double width=0;
+  double height=0;
 
-  num? _weight;
+  double? _weight;
   int? _order;
   int? _rank;
   int? _minRank;
   int? _maxRank;
 
-  num? _out;
-  num? _inner;
+  double? _out;
+  double? _inner;
 
-  num? _lim;
-  num? _low;
+  double? _lim;
+  double? _low;
   Dummy? _dummy;
   String? _parent;
 
   LabelPosition? _labelPos;
   EdgeProps? _label;
-  Edge? _edgeObj;
+  EdgeObj? _edgeObj;
   EdgeProps? _edgeLabel;
-  Edge? _e;
+  EdgeObj? _e;
   String? _v;
 
   String? borderType;
@@ -39,7 +38,7 @@ class NodeProps {
   List<String> borderRight = [];
   List<SelfEdgeData> selfEdges = [];
 
-  NodeProps({num? width, num? height}) {
+  NodeProps({double? width, double? height}) {
     if (width != null) {
       this.width = width;
     }
@@ -48,11 +47,11 @@ class NodeProps {
     }
   }
 
-  num get x => _x!;
+  double get x => _x!;
 
-  num get y => _y!;
+  double get y => _y!;
 
-  num get weight => _weight!;
+  double get weight => _weight!;
 
   int get order => _order!;
 
@@ -62,13 +61,13 @@ class NodeProps {
 
   int get maxRank => _maxRank!;
 
-  num get out => _out!;
+  double get out => _out!;
 
-  num get inner => _inner!;
+  double get inner => _inner!;
 
-  num get lim => _lim!;
+  double get lim => _lim!;
 
-  num get low => _low!;
+  double get low => _low!;
 
   String get parent => _parent!;
 
@@ -82,13 +81,13 @@ class NodeProps {
 
   EdgeProps get edgeLabel => _edgeLabel!;
 
-  Edge get e => _e!;
+  EdgeObj get e => _e!;
 
-  Edge get edgeObj => _edgeObj!;
+  EdgeObj get edgeObj => _edgeObj!;
 
-  num? get xNull => _x;
+  double? get xNull => _x;
 
-  num? get yNull => _y;
+  double? get yNull => _y;
 
   int? get rankNull => _rank;
 
@@ -96,11 +95,11 @@ class NodeProps {
 
   int? get maxRankNull => _maxRank;
 
-  num? get outNull => _out;
+  double? get outNull => _out;
 
-  num? get innerNull => _inner;
+  double? get innerNull => _inner;
 
-  num? get limNull => _lim;
+  double? get limNull => _lim;
 
   String? get parentNull => _parent;
 
@@ -112,16 +111,16 @@ class NodeProps {
 
   EdgeProps? get edgeLabelNull => _edgeLabel;
 
-  Edge? get eNull => _e;
+  EdgeObj? get eNull => _e;
 
-  Edge? get edgeObjNull => _edgeObj;
+  EdgeObj? get edgeObjNull => _edgeObj;
 
 
-  set x(num? v) => _x = v;
+  set x(double? v) => _x = v;
 
-  set y(num? v) => _y = v;
+  set y(double? v) => _y = v;
 
-  set weight(num v) => _weight = v;
+  set weight(double v) => _weight = v;
 
   set order(int v) => _order = v;
 
@@ -131,13 +130,13 @@ class NodeProps {
 
   set maxRank(int v) => _maxRank = v;
 
-  set out(num v) => _out = v;
+  set out(double v) => _out = v;
 
-  set inner(num v) => _inner = v;
+  set inner(double v) => _inner = v;
 
-  set lim(num v) => _lim = v;
+  set lim(double v) => _lim = v;
 
-  set low(num v) => _low = v;
+  set low(double v) => _low = v;
 
   set parent(String? v) => _parent = v;
 
@@ -151,9 +150,9 @@ class NodeProps {
 
   set edgeLabel(EdgeProps? v) => _edgeLabel = v;
 
-  set e(Edge? v) => _e = v;
+  set e(EdgeObj? v) => _e = v;
 
-  set edgeObj(Edge v) => _edgeObj = v;
+  set edgeObj(EdgeObj v) => _edgeObj = v;
 
 
   @override

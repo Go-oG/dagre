@@ -5,15 +5,17 @@ import 'package:dart_dagre/src/model/enums/rank_dir.dart';
 import 'package:dart_dagre/src/model/edge_props.dart';
 import 'package:dart_dagre/src/model/node_props.dart';
 
+import 'model/graph_props.dart';
+
 void adjust(Graph g) {
-  var rankDir = g.graph.rankDir;
+  var rankDir = g.getLabel<GraphProps>().rankDir;
   if (rankDir ==RankDir.ltr || rankDir ==RankDir.rtl) {
     _swapWidthHeight(g);
   }
 }
 
 void undo(Graph g) {
-  var rankDir = g.graph.rankDir;
+  var rankDir = g.getLabel<GraphProps>().rankDir;
   if (rankDir == RankDir.btt || rankDir ==RankDir.rtl) {
     _reverseY(g);
   }
@@ -29,7 +31,7 @@ void _swapWidthHeight(Graph g) {
     _swapWidthHeightOne(g.node(v));
   }
   for (var e in g.edges) {
-    _swapWidthHeightOne2(g.edge(e));
+    _swapWidthHeightOne2(g.edge2<EdgeProps>(e));
   }
 }
 
@@ -50,7 +52,7 @@ void _reverseY(Graph g) {
     np.y=-np.y;
   }
   for (var e in g.edges) {
-    var edge = g.edge(e);
+    var edge = g.edge2<EdgeProps>(e);
     for (var p in edge.points) {
       p.y=-p.y;
     }
@@ -66,7 +68,7 @@ void _swapXY(Graph g) {
   }
 
   for (var e in g.edges) {
-    var edge = g.edge(e);
+    var edge = g.edge2<EdgeProps>(e);
     edge.points=List.from(edge.points.map((e) => Point(e.y, e.x)));
     if(edge.xNull!=null){
       var x = edge.x;

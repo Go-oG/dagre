@@ -3,9 +3,11 @@ import 'dart:math' as math;
 import 'package:dart_dagre/src/graph/graph.dart';
 import 'package:dart_dagre/src/util/list_util.dart';
 
+import 'model/graph_props.dart';
+
 void parentDummyChains(Graph g) {
   Map<String, _InnerResult2> postorderNums = _postorder(g);
-  for (var v in g.graph.dummyChains) {
+  for (var v in g.getLabel<GraphProps>().dummyChains) {
     var node = g.node(v);
     var edgeObj = node.edgeObj;
     _InnerResult pathData = _findPath(g, postorderNums, edgeObj.v, edgeObj.w);

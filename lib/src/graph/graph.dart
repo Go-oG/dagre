@@ -1,11 +1,10 @@
-import 'package:dart_dagre/src/model/edge.dart';
-import 'package:dart_dagre/src/model/graph_props.dart';
-import 'package:dart_dagre/src/model/node_props.dart';
 import 'package:dart_dagre/src/util/list_util.dart';
 import 'package:flutter/widgets.dart';
-
 import '../model/edge_props.dart';
 
+///v:sourceId or edgeEndNodeId
+/// w=> targetId or edgeStartNodeId
+/// name => edgeId
 class Graph {
   static const String _defaultEdgeId = "\x00";
   static const String _edgeKeyDelim = "\x01";
@@ -15,29 +14,30 @@ class Graph {
   final bool isCompound;
 
   // 图本身的属性
-  GraphProps _props = GraphProps();
+  dynamic _label;
 
-  // nodeId ->NodeValue
-  final Map<String, NodeProps?> _nodeValues = {};
+  //v->label
+  final Map<String, dynamic> _nodes = {};
 
-  // edgeId -> EdgeValue
-  final Map<String, EdgeProps> _edgeLabels = {};
+  // v-> edgeObj
+  final Map<String, Map<String, EdgeObj>> _in = {};
 
-  // edgeId -> EdgeObj
-  final Map<String, Edge> _edgeObjs = {};
+  // u -> v -> Number
+  final Map<String, Map<String, int>> _preds = {};
 
-  // nodeId -> NodeId -> Number
-  final Map<String, Map<String, num>> _preds = {};
+  // v -> edgeObj
+  final Map<String, Map<String, EdgeObj>> _out = {};
 
   // v -> w -> Number
-  final Map<String, Map<String, num>> _sucs = {};
+  final Map<String, Map<String, int>> _sucs = {};
+
+  // edgeId -> EdgeObj
+  final Map<String, EdgeObj> _edgeObjs = {};
+
+  // edgeId -> EdgeValue
+  final Map<String, dynamic> _edgeLabels = {};
 
   // nodeId -> edgeObj
-  final Map<String, Map<String, Edge>> _out = {};
-
-  // nodeId -> edgeObj
-  final Map<String, Map<String, Edge>> _in = {};
-
   Map<String, String> _parent = {};
 
   Map<String, Map<String, bool>> _children = {};
@@ -45,11 +45,12 @@ class Graph {
   int _nodeCount = 0;
   int _edgeCount = 0;
 
-  NodeProps? Function(String) _defaultNodePropsFun = (a) {
+  dynamic Function(String) _defaultNodeLabelFun = (id) {
     return null;
   };
-  EdgeProps Function(Edge edge) _defaultEdgePropsFun = (a) {
-    return EdgeProps();
+
+  dynamic Function(String, String, String?) _defaultEdgeLabelFun = (v, w, id) {
+    return null;
   };
 
   Graph({
@@ -64,44 +65,44 @@ class Graph {
     }
   }
 
-  Graph setGraph(GraphProps label) {
-    _props = label;
+  ///该数据可能有问题
+  Graph setLabel(dynamic label) {
+    _label = label;
     return this;
   }
 
-  Graph setDefaultNodePropsFun(NodeProps? Function(String) newDefault) {
-    _defaultNodePropsFun = newDefault;
+  Graph setDefaultNodePropsFun(dynamic Function(String) newDefault) {
+    _defaultNodeLabelFun = newDefault;
     return this;
   }
 
-  Graph setDefaultEdgePropsFun(EdgeProps Function(Edge) newDefault) {
-    _defaultEdgePropsFun = newDefault;
+  Graph setDefaultEdgePropsFun(dynamic Function(String, String, String?) newDefault) {
+    _defaultEdgeLabelFun = newDefault;
     return this;
   }
 
-  GraphProps get graph {
-    return _props;
+  R getLabel<R>() {
+    return _label as R;
   }
 
   int get nodeCount => _nodeCount;
 
-  List<String> get nodes => List.from(_nodeValues.keys);
+  List<String> get nodes => List.from(_nodes.keys);
 
   List<String> get sources {
     return nodes.filter((v) {
-      var t=_in[v];
-      return t==null||t.isEmpty;
+      var t = _in[v];
+      return t == null;
     });
   }
 
   List<String> get sinks {
     return nodes.filter((v) {
-      var t=_out[v];
-      return t==null||t.isEmpty;
+      return _out[v] == null;
     });
   }
 
-  Graph setNodes(List<String> vs, [NodeProps? value]) {
+  Graph setNodes(List<String> vs, [dynamic value]) {
     var self = this;
     vs.each((v, i) {
       self.setNode(v, value);
@@ -109,15 +110,15 @@ class Graph {
     return this;
   }
 
-  Graph setNode(String v, [NodeProps? p]) {
-    if (_nodeValues.containsKey(v)) {
-      if (p != null) {
-        _nodeValues[v] = p;
+  Graph setNode(String v, [dynamic value]) {
+    if (_nodes.containsKey(v)) {
+      if (value != null) {
+        _nodes[v] = value;
       }
       return this;
     }
 
-    _nodeValues[v] = p ?? _defaultNodePropsFun.call(v);
+    _nodes[v] = value ?? _defaultNodeLabelFun.call(v);
 
     if (isCompound) {
       _parent[v] = _graphNodeId;
@@ -134,23 +135,17 @@ class Graph {
     return this;
   }
 
-  NodeProps node(String v) {
-    // NodeProps p=_nodeValues[nodeId]??NodeProps();
-    // _nodeValues[nodeId]=p;
-    return _nodeValues[v]!;
-  }
-
-  NodeProps? nodeNull(String nodeId) {
-    return _nodeValues[nodeId];
+  R node<R>(String nodeId) {
+    return _nodes[nodeId] as R;
   }
 
   bool hasNode(String? v) {
-    return _nodeValues.containsKey(v);
+    return _nodes.containsKey(v);
   }
 
   Graph removeNode(String? v) {
-    if (_nodeValues.containsKey(v)) {
-      _nodeValues.remove(v);
+    if (_nodes.containsKey(v)) {
+      _nodes.remove(v);
       if (isCompound) {
         _removeFromParentsChildList(v);
         _parent.remove(v);
@@ -159,12 +154,14 @@ class Graph {
         });
         _children.remove(v);
       }
-      List<String> kl = List.from((_in[v] ?? {}).keys);
+
+      List<EdgeObj> kl = List.from((_in[v] ?? {}).keys);
       for (var e in kl) {
         removeEdge2(_edgeObjs[e]);
       }
       _in.remove(v);
       _preds.remove(v);
+
       kl = List.from((_out[v] ?? {}).keys);
       for (var e in kl) {
         removeEdge2(_edgeObjs[e]);
@@ -176,7 +173,7 @@ class Graph {
     return this;
   }
 
-  Graph setParent(String node, [String? parent]) {
+  Graph setParent(String id, [String? parent]) {
     if (!isCompound) {
       throw FlutterError("Cannot set parent in a non-compound graph");
     }
@@ -186,24 +183,24 @@ class Graph {
       String? ancestor = parent;
       while (ancestor != null) {
         ancestor = this.parent(ancestor);
-        if (ancestor == node) {
-          throw FlutterError('Setting  $parent   as parent of $node  would create a cycle');
+        if (ancestor == id) {
+          throw FlutterError('Setting  $parent   as parent of $id  would create a cycle');
         }
       }
       setNode(parent);
     }
-    setNode(node);
-    _removeFromParentsChildList(node);
-    _parent[node] = parent;
+    setNode(id);
+    _removeFromParentsChildList(id);
+    _parent[id] = parent;
+
     Map<String, bool> m = _children[parent] ?? {};
-    m[node] = true;
     _children[parent] = m;
+    m[id] = true;
     return this;
   }
 
   void _removeFromParentsChildList(String? v) {
-    Map<String, bool>? m = _children[_parent[v]];
-    m?.remove(v);
+    _children[_parent[v]]?.remove(v);
   }
 
   String? parent(String? v) {
@@ -216,8 +213,7 @@ class Graph {
     return null;
   }
 
-  List<String> children([String? nodeId]) {
-    nodeId ??= _graphNodeId;
+  List<String> children([String? nodeId = _graphNodeId]) {
     if (isCompound) {
       var children = _children[nodeId];
       if (children != null) {
@@ -250,21 +246,11 @@ class Graph {
   List<String> neighbors(String v) {
     var preds = predecessors(v);
     if (preds.isNotEmpty) {
-      List<String> rl = [];
-      Set<String> ds = {};
-      for (var e in preds) {
-        if (!ds.contains(e)) {
-          rl.add(e);
-          ds.add(e);
-        }
-      }
+      Set<String> ds = Set.from(preds);
       successors(v).forEach((e) {
-        if (!ds.contains(e)) {
-          rl.add(e);
-          ds.add(e);
-        }
+        ds.add(e);
       });
-      return rl;
+      return List.from(ds);
     }
     return [];
   }
@@ -281,20 +267,21 @@ class Graph {
 
   Graph filterNodes(bool Function(String) filter) {
     var copy = Graph(isDirected: isDirected, isMultiGraph: isMultiGraph, isCompound: isCompound);
-    copy.setGraph(graph);
+    copy.setLabel(getLabel());
 
-    _nodeValues.forEach((v, value) {
+    _nodes.forEach((v, value) {
       if (filter(v)) {
         copy.setNode(v, value);
       }
     });
 
-    _edgeObjs.forEach((e, s) {
-      if (copy.hasNode(s.v) && copy.hasNode(s.w)) {
-        copy.setEdge2(s, edge(s));
+    _edgeObjs.forEach((s, e) {
+      if (copy.hasNode(e.v) && copy.hasNode(e.w)) {
+        copy.setEdge2(e, edge(e.v, e.w, e.id));
       }
     });
-    var parents = {};
+
+    Map<String, String?> parents = {};
     findParent(v) {
       var parent = this.parent(v);
       if (parent == null || copy.hasNode(parent)) {
@@ -318,42 +305,38 @@ class Graph {
   int get edgeCount => _edgeCount;
 
   ///返回所有的EdgeObj对象
-  List<Edge> get edges {
+  List<EdgeObj> get edges {
     return List.from(_edgeObjs.values);
   }
 
   ///根据EdgeObj 对象获取对应的Value
-  EdgeProps edge(Edge e) {
-    return _edgeLabels[edgeObjToId(isDirected, e)]!;
-  }
-
-  EdgeProps edge2(String v, String? w, [String? id]) {
-    return edgeOrNull(v, w, id)!;
-  }
-
-  EdgeProps? edgeOrNull(String v, String? w, [String? edgeId]) {
+  R edge<R>(String v, String? w, [String? edgeId]) {
     var e = edgeArgsToId(isDirected, v, w, edgeId);
-    return _edgeLabels[e];
+    return _edgeLabels[e] as R;
   }
 
-  Graph setPath(List<String> nodeList, [EdgeProps? value]) {
-    for (int i = 1; i < nodeList.length; i++) {
-      String pre = nodeList[i - 1];
-      String now = nodeList[i];
-      _setEdgeInner(pre, now, null, value);
+  R edge2<R>(EdgeObj obj) {
+    return edge(obj.v, obj.w, obj.id);
+  }
+
+  Graph setPath(List<String> idList, [EdgeProps? value]) {
+    for (int i = 1; i < idList.length; i++) {
+      String v = idList[i - 1];
+      String w = idList[i];
+      _setEdgeInner(v, w, null, value);
     }
     return this;
   }
 
-  Graph setEdge2(Edge edge, [EdgeProps? value]) {
+  Graph setEdge2(EdgeObj edge, [dynamic value]) {
     return _setEdgeInner(edge.v, edge.w, edge.id, value);
   }
 
-  Graph setEdge(String v, String w, {String? id, EdgeProps? value}) {
+  Graph setEdge(String v, String w, {String? id, dynamic value}) {
     return _setEdgeInner(v, w, id, value);
   }
 
-  Graph _setEdgeInner(String v, String w, String? edgeId, EdgeProps? value) {
+  Graph _setEdgeInner(String v, String w, String? edgeId, dynamic value) {
     var e = edgeArgsToId(isDirected, v, w, edgeId);
     if (_edgeLabels.containsKey(e)) {
       if (value != null) {
@@ -361,26 +344,31 @@ class Graph {
       }
       return this;
     }
-    if (edgeId != null && !isMultiGraph) {
+    if (!(edgeId == null || edgeId.isEmpty) && !isMultiGraph) {
       throw FlutterError("Cannot set a named edge when isMultigraph = false");
     }
     setNode(v);
     setNode(w);
-    _edgeLabels[e] = value ?? _defaultEdgePropsFun.call(Edge(v: v, w: w, id: edgeId));
+    _edgeLabels[e] = value ?? _defaultEdgeLabelFun.call(v, w, edgeId);
     var edgeObj = edgeArgsToObj(isDirected, v, w, edgeId);
-    // Ensure we add undirected edges in a consistent way.
     v = edgeObj.v;
     w = edgeObj.w;
     _edgeObjs[e] = edgeObj;
     incrementOrInitEntry(_preds[w]!, v);
     incrementOrInitEntry(_sucs[v]!, w);
-    _in[w]![e] = edgeObj;
-    _out[v]![e] = edgeObj;
+
+    var map = _in[w] ?? {};
+    _in[w] = map;
+    map[e] = edgeObj;
+
+    map = _out[v] ?? {};
+    _out[v] = map;
+    map[e] = edgeObj;
     _edgeCount++;
     return this;
   }
 
-  bool hasEdge(Edge edge) {
+  bool hasEdge(EdgeObj edge) {
     var e = edgeObjToId(isDirected, edge);
     return _edgeObjs[e] != null;
   }
@@ -407,17 +395,17 @@ class Graph {
     return this;
   }
 
-  Graph removeEdge2(Edge? v) {
+  Graph removeEdge2(EdgeObj? v) {
     if (v == null) {
       return this;
     }
     return removeEdge(v.v, v.w, v.id);
   }
 
-  List<Edge> inEdges(String v, [String? u]) {
+  List<EdgeObj> inEdges(String v, [String? u]) {
     var inV = _in[v];
-    if (inV != null) {
-      List<Edge> edges = List.from(inV.values);
+    if (inV != null && inV.isNotEmpty) {
+      List<EdgeObj> edges = List.from(inV.values);
       if (u == null) {
         return edges;
       }
@@ -428,10 +416,10 @@ class Graph {
     return [];
   }
 
-  List<Edge> outEdges(String v, [String? w]) {
+  List<EdgeObj> outEdges(String v, [String? w]) {
     var outV = _out[v];
     if (outV != null) {
-      List<Edge> edges = List.from(outV.values);
+      List<EdgeObj> edges = List.from(outV.values);
       if (w == null) {
         return edges;
       }
@@ -442,29 +430,31 @@ class Graph {
     return [];
   }
 
-  List<Edge> nodeEdges(String v, [String? w]) {
-    var inEdgesv = inEdges(v, w);
-    if (inEdgesv.isNotEmpty) {
-      return [...inEdgesv, ...outEdges(v, w)];
+  List<EdgeObj> nodeEdges(String v, [String? w]) {
+    var values = inEdges(v, w);
+    if (values.isNotEmpty) {
+      return [...values, ...outEdges(v, w)];
     }
     return [];
   }
 
-  void incrementOrInitEntry(Map<String, num> map, String k) {
-    if (map[k] != null) {
-      map[k] = map[k]! + 1;
+  void incrementOrInitEntry(Map<String, int> map, String k) {
+    int? v = map[k];
+    if (v != null) {
+      map[k] = v + 1;
     } else {
       map[k] = 1;
     }
   }
 
-  void decrementOrRemoveEntry(Map<String, num>? map, String k) {
+  void decrementOrRemoveEntry(Map<String, int>? map, String k) {
     if (map == null) {
       return;
     }
-    num? v = map[k];
+    int? v = map[k];
     if (v != null) {
-      map[k] = --v;
+      v -= 1;
+      map[k] = v;
     }
     if (v == null || v == 0) {
       map.remove(k);
@@ -480,10 +470,10 @@ class Graph {
       v = w;
       w = tmp;
     }
-    return v + _edgeKeyDelim + w + _edgeKeyDelim + (edgeId ?? _defaultEdgeId);
+    return v + _edgeKeyDelim + w + _edgeKeyDelim + ((edgeId == null || edgeId.isEmpty) ? _defaultEdgeId : edgeId);
   }
 
-  Edge edgeArgsToObj(bool isDirected, String v_, String w_, [String? edgeId]) {
+  EdgeObj edgeArgsToObj(bool isDirected, String v_, String w_, [String? edgeId]) {
     var v = v_;
     var w = w_;
     int t = v.compareTo(w);
@@ -492,10 +482,18 @@ class Graph {
       v = w;
       w = tmp;
     }
-    return Edge(v: v, w: w, id: edgeId);
+    return EdgeObj(v: v, w: w, id: edgeId);
   }
 
-  String edgeObjToId(bool isDirected, Edge edgeObj) {
-    return edgeArgsToId(isDirected, edgeObj.v, edgeObj.w, edgeObj.id);
+  String edgeObjToId(bool isDirected, EdgeObj obj) {
+    return edgeArgsToId(isDirected, obj.v, obj.w, obj.id);
   }
+}
+
+class EdgeObj {
+  String v;
+  String w;
+  String? id;
+
+  EdgeObj({required this.v, required this.w, this.id});
 }

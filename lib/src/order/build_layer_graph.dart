@@ -3,7 +3,6 @@ import 'package:dart_dagre/src/model/graph_props.dart';
 import 'package:dart_dagre/src/model/node_props.dart';
 import '../graph/graph.dart';
 import '../model/enums/relationship.dart';
-import '../model/edge.dart';
 import '../util/util.dart';
 
 Graph buildLayerGraph(Graph g, int rank, Relationship ship) {
@@ -11,9 +10,9 @@ Graph buildLayerGraph(Graph g, int rank, Relationship ship) {
   Graph result = Graph(isCompound: true);
   GraphProps gp = GraphProps();
   gp.root = root;
-  result.setGraph(gp);
+  result.setLabel(gp);
   result.setDefaultNodePropsFun((v) {
-    return g.nodeNull(v);
+    return g.node(v);
   });
 
   for (var v in g.nodes) {
@@ -22,13 +21,13 @@ Graph buildLayerGraph(Graph g, int rank, Relationship ship) {
     if (node.rankNull == rank || (node.minRankNull ?? double.nan) <= rank && rank <= (node.maxRankNull ?? double.nan)) {
       result.setNode(v);
       result.setParent(v, parent ?? root);
-      List<Edge> tmpList = ship == Relationship.inEdges ? g.inEdges(v) : g.outEdges(v);
+      List<EdgeObj> tmpList = ship == Relationship.inEdges ? g.inEdges(v) : g.outEdges(v);
       for (var e in tmpList) {
         String u = e.v == v ? e.w : e.v;
-        EdgeProps? edge = result.edgeOrNull(u, v);
+        EdgeProps? edge = result.edge(u, v);
         num weight =edge?.weight??0 ;
         EdgeProps ep = EdgeProps.zero();
-        ep.weight = g.edge(e).weight + weight;
+        ep.weight = (g.edge2<EdgeProps>(e)).weight + weight;
         result.setEdge(u, v, value: ep);
       }
       if (node.minRankNull != null) {

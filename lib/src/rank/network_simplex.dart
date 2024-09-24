@@ -1,4 +1,3 @@
-import 'package:dart_dagre/src/model/edge.dart';
 import 'package:dart_dagre/src/model/edge_props.dart';
 import 'package:dart_dagre/src/model/node_props.dart';
 import 'package:dart_dagre/src/rank/util.dart';
@@ -15,8 +14,8 @@ void networkSimplex(Graph g) {
   var t = feasibleTree(g2);
   _initLowLimValues(t);
   _initCutValues(t, g2);
-  Edge? e;
-  Edge f;
+  EdgeObj? e;
+  EdgeObj f;
   while ((e = leaveEdge(t)) != null) {
     f = _enterEdge(t, g2, e!);
     _exchangeEdges(t, g2, e, f);
@@ -41,28 +40,25 @@ void _initCutValues(Graph t, Graph g) {
 void _assignCutValue(Graph t, Graph g, String child) {
   var childLab = t.node(child);
   var parent = childLab.parentNull;
-  t.edgeOrNull(child, parent)?.cutValue = _calcCutValue(t, g, child);
+  t.edge(child, parent)?.cutValue = _calcCutValue(t, g, child);
 }
 
 /*
  * Given the tight tree, its graph, and a child in the graph calculate and
  * return the cut value for the edge between the child and its parent.
  */
-num _calcCutValue(Graph t, Graph g, String child) {
-  var childLab = t.node(child);
+double _calcCutValue(Graph t, Graph g, String child) {
+  NodeProps childLab = t.node(child);
   var parent = childLab.parent;
-  // True if the child is on the tail end of the edge in the directed graph
   var childIsTail = true;
-  // The graph's view of the tree edge we're inspecting
-  var graphEdge = g.edgeOrNull(child, parent);
-  // The accumulated cut value for the edge between this node and its parent
-  num cutValue = 0;
+  EdgeProps? graphEdge = g.edge(child, parent);
+  double cutValue = 0;
 
   if (graphEdge == null) {
     childIsTail = false;
-    graphEdge = g.edge2(parent, child);
+    graphEdge = g.edge(parent, child);
   }
-  cutValue = graphEdge.weight;
+  cutValue = graphEdge!.weight;
 
   g.nodeEdges(child).forEach((e) {
     bool isOutEdge = e.v == child;
@@ -70,11 +66,11 @@ num _calcCutValue(Graph t, Graph g, String child) {
 
     if (other != parent) {
       bool pointsToHead = isOutEdge == childIsTail;
-      num otherWeight = g.edge(e).weight;
+      num otherWeight = g.edge2<EdgeProps>(e).weight;
 
       cutValue += pointsToHead ? otherWeight : -otherWeight;
       if (_isTreeEdge(t, child, other)) {
-        var otherCutValue = t.edge2(child, other).cutValue;
+        var otherCutValue = t.edge(child, other).cutValue;
         cutValue += pointsToHead ? -otherCutValue : otherCutValue;
       }
     }
@@ -88,8 +84,8 @@ void _initLowLimValues(Graph tree, [String? root]) {
   _dfsAssignLowLim(tree, {}, 1, root);
 }
 
-num _dfsAssignLowLim(Graph tree, Map<String, bool> visited, num nextLim, String v, [String? parent]) {
-  var low = nextLim;
+double _dfsAssignLowLim(Graph tree, Map<String, bool> visited, double nextLim, String v, [String? parent]) {
+  double low = nextLim;
   NodeProps label = tree.node(v);
 
   visited[v] = true;
@@ -109,17 +105,17 @@ num _dfsAssignLowLim(Graph tree, Map<String, bool> visited, num nextLim, String 
   return nextLim;
 }
 
-Edge? leaveEdge(Graph tree) {
+EdgeObj? leaveEdge(Graph tree) {
   try {
     return tree.edges.firstWhere((e) {
-      return tree.edge(e).cutValue < 0;
+      return tree.edge2<EdgeProps>(e).cutValue < 0;
     });
   } catch (_) {
     return null;
   }
 }
 
-Edge _enterEdge(Graph t, Graph g, Edge edge) {
+EdgeObj _enterEdge(Graph t, Graph g, EdgeObj edge) {
   var v = edge.v;
   var w = edge.w;
 
@@ -147,12 +143,12 @@ Edge _enterEdge(Graph t, Graph g, Edge edge) {
     return flip == _isDescendant(t, t.node(edge.v), tailLabel) && flip != _isDescendant(t, t.node(edge.w), tailLabel);
   });
 
-  return minBy(candidates, (edge) {
-    return slack(g, edge);
+  return minBy(candidates, (tt) {
+    return slack(g, tt);
   });
 }
 
-void _exchangeEdges(Graph t, Graph g, Edge e, Edge f) {
+void _exchangeEdges(Graph t, Graph g, EdgeObj e, EdgeObj f) {
   var v = e.v;
   var w = e.w;
   t.removeEdge(v, w);
@@ -170,12 +166,12 @@ void _updateRanks(Graph t, Graph g) {
   List<String> vs = preorder(t, [root]);
   vs = List.from(vs.sublist(1));
   for (var v in vs) {
-    var parent = t.node(v).parent, edge = g.edgeOrNull(v, parent), flipped = false;
+    var parent = t.node<NodeProps>(v).parent, edge = g.edge<EdgeProps?>(v, parent), flipped = false;
     if (edge == null) {
-      edge = g.edge2(parent, v);
+      edge = g.edge(parent, v);
       flipped = true;
     }
-    g.node(v).rank = (g.node(parent).rank + (flipped ? edge.minLen : -edge.minLen)).toInt();
+    g.node(v).rank = (g.node(parent).rank + (flipped ? edge!.minLen : -edge!.minLen)).toInt();
   }
 }
 

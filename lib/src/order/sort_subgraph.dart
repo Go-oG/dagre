@@ -9,7 +9,7 @@ import '../model/tmp/order_inner_result.dart';
 
 ResolveConflictsResult sortSubgraph(Graph g, String v, Graph cg, bool biasRight) {
   List<String> movable = g.children(v);
-  var node = g.nodeNull(v);
+  NodeProps? node = g.node(v);
   String? bl;
   if (node != null && node.borderLeft.isNotEmpty) {
     bl = node.borderLeft.first;

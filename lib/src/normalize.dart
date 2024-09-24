@@ -1,25 +1,25 @@
 import 'package:dart_dagre/src/graph/graph.dart';
 import 'package:dart_dagre/src/model/enums/dummy.dart';
 import 'package:dart_dagre/src/model/edge_props.dart';
-import 'package:dart_dagre/src/model/edge.dart';
 import 'package:dart_dagre/src/model/node_props.dart';
 import 'package:dart_dagre/src/util.dart' as util;
 import 'model/graph_point.dart';
+import 'model/graph_props.dart';
 
 void run(Graph g) {
-  g.graph.dummyChains = [];
+  g.getLabel<GraphProps>().dummyChains = [];
   for (var edge in g.edges) {
     _normalizeEdge(g, edge);
   }
 }
 
-void _normalizeEdge(Graph g, Edge e) {
+void _normalizeEdge(Graph g, EdgeObj e) {
   var v = e.v;
   int vRank = g.node(v).rank;
   var w = e.w;
   int wRank = g.node(w).rank;
   var name = e.id;
-  var edgeLabel = g.edge(e);
+  var edgeLabel = g.edge2<EdgeProps>(e);
   var labelRank = edgeLabel.labelRankNull;
 
   if (wRank == vRank + 1) return;
@@ -50,7 +50,7 @@ void _normalizeEdge(Graph g, Edge e) {
     g.setEdge(v, dummy, id: name, value: ep);
 
     if (i == 0) {
-      g.graph.dummyChains.add(dummy);
+      g.getLabel<GraphProps>().dummyChains.add(dummy);
     }
 
     v = dummy;
@@ -59,9 +59,9 @@ void _normalizeEdge(Graph g, Edge e) {
 }
 
 void undo(Graph g) {
-  for (var v in g.graph.dummyChains) {
+  for (var v in g.getLabel<GraphProps>().dummyChains) {
     NodeProps? node = g.node(v);
-    EdgeProps origLabel = node.edgeLabel;
+    EdgeProps origLabel = node!.edgeLabel;
     g.setEdge2(node.edgeObj, origLabel);
     while (node != null && node.dummyNull != null) {
       var w = g.successors(v)[0];
@@ -74,7 +74,7 @@ void undo(Graph g) {
         origLabel.height = node.height;
       }
       v = w;
-      node = g.nodeNull(v);
+      node = g.node(v);
     }
   }
 }

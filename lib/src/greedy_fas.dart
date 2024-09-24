@@ -1,33 +1,32 @@
 import 'dart:math' as math;
 import 'package:dart_dagre/src/graph/graph.dart';
-import 'package:dart_dagre/src/model/edge.dart';
 import 'package:dart_dagre/src/model/edge_props.dart';
 import 'package:dart_dagre/src/model/node_props.dart';
 import 'package:dart_dagre/src/util/list_util.dart';
 import 'package:dart_dagre/src/util/util.dart';
 
-num Function(Edge) defaultWeightFun = (a) {
+num Function(EdgeObj) defaultWeightFun = (a) {
   return 1;
 };
 
-List<Edge> greedyFAS(Graph g, num Function(Edge)? weightFn) {
+List<EdgeObj> greedyFAS(Graph g, num Function(EdgeObj)? weightFn) {
   if (g.nodeCount <= 1) {
     return [];
   }
   _InnerResult2 state = _buildState(g, weightFn??defaultWeightFun);
 
-  List<Edge> results = _doGreedyFAS(state.graph, state.buckets, state.zeroIdx);
+  List<EdgeObj> results = _doGreedyFAS(state.graph, state.buckets, state.zeroIdx);
 
   // Expand multi-edges
-  List<Edge> rl = [];
+  List<EdgeObj> rl = [];
   for (var e in results) {
     rl.addAll(g.outEdges(e.v, e.w));
   }
   return rl;
 }
 
-List<Edge> _doGreedyFAS(Graph g, List<List<NodeProps>> buckets, int zeroIdx) {
-  List<Edge> results = [];
+List<EdgeObj> _doGreedyFAS(Graph g, List<List<NodeProps>> buckets, int zeroIdx) {
+  List<EdgeObj> results = [];
   var sources = buckets[buckets.length - 1];
   var sinks = buckets[0];
   NodeProps? entry;
@@ -54,20 +53,20 @@ List<Edge> _doGreedyFAS(Graph g, List<List<NodeProps>> buckets, int zeroIdx) {
   return results;
 }
 
-List<Edge>? _removeNode(Graph g, List<List<NodeProps>> buckets, int zeroIdx,NodeProps entry, [bool collectPredecessors = false]) {
-  List<Edge>? results = collectPredecessors ? [] : null;
+List<EdgeObj>? _removeNode(Graph g, List<List<NodeProps>> buckets, int zeroIdx,NodeProps entry, [bool collectPredecessors = false]) {
+  List<EdgeObj>? results = collectPredecessors ? [] : null;
   g.inEdges(entry.v).forEach((e) {
-    var weight =g.edge(e).value;
+    var weight =g.edge2<EdgeProps>(e).value;
     var uEntry = g.node(e.v);
     if (results != null) {
-      Edge ir = Edge(v:e.v,w: e.w);
+      EdgeObj ir = EdgeObj(v:e.v,w: e.w);
       results.add(ir);
     }
     uEntry.out = uEntry.out - weight;
     _assignBucket(buckets, zeroIdx, uEntry);
   });
   g.outEdges(entry.v).forEach((e) {
-    var weight = g.edge(e).weight;
+    var weight = g.edge2<EdgeProps>(e).weight;
     var w = e.w;
     var wEntry = g.node(w);
     wEntry.inner = wEntry.inner - weight;
@@ -77,7 +76,7 @@ List<Edge>? _removeNode(Graph g, List<List<NodeProps>> buckets, int zeroIdx,Node
   return results;
 }
 
-_InnerResult2 _buildState(Graph g, num Function(Edge) weightFn) {
+_InnerResult2 _buildState(Graph g, num Function(EdgeObj) weightFn) {
   var fasGraph = Graph();
   int maxIn = 0;
   int maxOut = 0;
@@ -91,7 +90,7 @@ _InnerResult2 _buildState(Graph g, num Function(Edge) weightFn) {
   // Aggregate weights on nodes, but also sum the weights across multi-edges
   // into a single edge for the fasGraph.
   for (var e in g.edges) {
-    var prevWeight =fasGraph.edgeOrNull(e.v,e.w,e.id)?.value??0;
+    var prevWeight =fasGraph.edge<EdgeProps?>(e.v,e.w,e.id)?.value??0;
     num weight = weightFn.call(e);
     var edgeWeight = prevWeight + weight;
 
