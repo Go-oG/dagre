@@ -6,28 +6,30 @@ import '../util/list_util.dart';
 
 Graph longestPath(Graph g) {
   Map<String, bool> visited = {};
-  dfs(v) {
-    var label = g.node(v);
+
+  double dfs(String v) {
+    var label = g.node<NodeProps>(v);
     if (visited.containsKey(v)) {
-      return label.rank;
+      return label.rank!.toDouble();
     }
     visited[v] = true;
-    num? rank = min(g.outEdges(v).map((e) {
+    double? rank = min(g.outEdges(v).map((e) {
       return dfs(e.w) - g.edge2<EdgeProps>(e).minLen;
-    }));
-
-    if (rank == null || rank.isInfinite) {
+    }))?.toDouble();
+    rank ??= double.infinity;
+    if (rank.isInfinite || rank.isNaN) {
       rank = 0;
     }
     label.rank = rank.toInt();
+
     return rank;
   }
   g.sources.forEach(dfs);
   return g;
 }
 
-num slack(Graph g, EdgeObj e) {
-  var r1 = g.node<NodeProps>(e.w).rankNull ?? 0;
-  var r2 = g.node<NodeProps>(e.v).rankNull ?? 0;
+double slack(Graph g, EdgeObj e) {
+  var r1 = g.node<NodeProps>(e.w).rank!;
+  var r2 = g.node<NodeProps>(e.v).rank!;
   return r1 - r2 - g.edge2<EdgeProps>(e).minLen;
 }
