@@ -5,11 +5,11 @@ import 'package:dart_dagre/src/model/node_props.dart';
 import 'package:dart_dagre/src/util/list_util.dart';
 import 'package:dart_dagre/src/util/util.dart';
 
-num Function(EdgeObj) defaultWeightFun = (a) {
+double Function(EdgeObj) defaultWeightFun = (a) {
   return 1;
 };
 
-List<EdgeObj> greedyFAS(Graph g, num Function(EdgeObj)? weightFn) {
+List<EdgeObj> greedyFAS(Graph g, double Function(EdgeObj)? weightFn) {
   if (g.nodeCount <= 1) {
     return [];
   }
@@ -17,7 +17,6 @@ List<EdgeObj> greedyFAS(Graph g, num Function(EdgeObj)? weightFn) {
 
   List<EdgeObj> results = _doGreedyFAS(state.graph, state.buckets, state.zeroIdx);
 
-  // Expand multi-edges
   List<EdgeObj> rl = [];
   for (var e in results) {
     rl.addAll(g.outEdges(e.v, e.w));
@@ -55,32 +54,32 @@ List<EdgeObj> _doGreedyFAS(Graph g, List<List<NodeProps>> buckets, int zeroIdx) 
 
 List<EdgeObj>? _removeNode(Graph g, List<List<NodeProps>> buckets, int zeroIdx,NodeProps entry, [bool collectPredecessors = false]) {
   List<EdgeObj>? results = collectPredecessors ? [] : null;
-  g.inEdges(entry.v).forEach((e) {
+  g.inEdges(entry.v!).forEach((e) {
     var weight =g.edge2<EdgeProps>(e).value;
-    var uEntry = g.node(e.v);
-    if (results != null) {
-      EdgeObj ir = EdgeObj(v:e.v,w: e.w);
-      results.add(ir);
-    }
-    uEntry.out = uEntry.out - weight;
+    var uEntry = g.node<NodeProps>(e.v);
+
+    results?.add(EdgeObj(v: e.v, w: e.w));
+
+    uEntry.out = uEntry.out! - weight;
     _assignBucket(buckets, zeroIdx, uEntry);
   });
-  g.outEdges(entry.v).forEach((e) {
+
+  g.outEdges(entry.v!).forEach((e) {
     var weight = g.edge2<EdgeProps>(e).weight;
     var w = e.w;
-    var wEntry = g.node(w);
-    wEntry.inner = wEntry.inner - weight;
+    var wEntry = g.node<NodeProps>(w);
+    wEntry.inner = wEntry.inner! - weight;
     _assignBucket(buckets, zeroIdx, wEntry);
   });
   g.removeNode(entry.v);
   return results;
 }
 
-_InnerResult2 _buildState(Graph g, num Function(EdgeObj) weightFn) {
+_InnerResult2 _buildState(Graph g, double Function(EdgeObj) weightFn) {
   var fasGraph = Graph();
-  int maxIn = 0;
-  int maxOut = 0;
-  for (var v in g.nodes) {
+  double maxIn = 0;
+  double maxOut = 0;
+  for (var v in g.nodesIterable) {
     NodeProps p = NodeProps();
     p.v = v;
     p.inner = 0;
@@ -89,26 +88,26 @@ _InnerResult2 _buildState(Graph g, num Function(EdgeObj) weightFn) {
   }
   // Aggregate weights on nodes, but also sum the weights across multi-edges
   // into a single edge for the fasGraph.
-  for (var e in g.edges) {
+  for (var e in g.edgesIterable) {
     var prevWeight =fasGraph.edge<EdgeProps?>(e.v,e.w,e.id)?.value??0;
-    num weight = weightFn.call(e);
+    double weight = weightFn.call(e);
     var edgeWeight = prevWeight + weight;
 
     fasGraph.setEdge(e.v, e.w,value:EdgeProps(value: edgeWeight));
 
     NodeProps p1 = fasGraph.node(e.v);
-    p1.out = p1.out + weight;
-    maxOut = math.max(maxOut, p1.out).toInt();
+    p1.out = p1.out! + weight;
+    maxOut = math.max(maxOut, p1.out!);
 
     p1 = fasGraph.node(e.w);
-    p1.inner = p1.inner + weight;
-    maxIn = math.max(maxIn, p1.inner).toInt();
+    p1.inner = p1.inner! + weight;
+    maxIn = math.max(maxIn, p1.inner!);
   }
 
-  List<List<NodeProps>> buckets = List.from(range(0, maxOut + maxIn + 3).map((e) {
+  List<List<NodeProps>> buckets = List.from(range(0,( maxOut + maxIn + 3).toInt()).map((e) {
     return <NodeProps>[];
   }));
-  var zeroIdx = maxIn + 1;
+  var zeroIdx = (maxIn + 1).toInt();
 
   for (var v in fasGraph.nodes) {
     _assignBucket(buckets, zeroIdx, fasGraph.node(v));
@@ -121,12 +120,12 @@ _InnerResult2 _buildState(Graph g, num Function(EdgeObj) weightFn) {
 }
 
 void _assignBucket(List<List<NodeProps>> buckets, int zeroIdx, NodeProps entry) {
-  if (entry.outNull==null ) {
+  if (entry.out==null ) {
     buckets[0].insert(0,entry);
-  } else if (entry.innerNull==null) {
+  } else if (entry.inner==null) {
     buckets[buckets.length - 1].insert(0,entry);
   } else {
-    buckets[(entry.out - entry.inner + zeroIdx).toInt()].insert(0,entry);
+    buckets[(entry.out! - entry.inner! + zeroIdx).toInt()].insert(0,entry);
   }
 }
 
