@@ -20,10 +20,10 @@ Graph feasibleTree(Graph g) {
 }
 
 int tightTree(Graph t, Graph g) {
-  dfs(v) {
+  dfs(String v) {
     g.nodeEdges(v).forEach((e) {
       var edgeV = e.v, w = (v == edgeV) ? e.w : edgeV;
-      if (!t.hasNode(w) && slack(g, e)==0) {
+      if (!t.hasNode(w) && slack(g, e) != 0) {
         t.setNode(w, NodeProps());
         t.setEdge(v, w, value:EdgeProps.zero());
         dfs(w);
@@ -36,16 +36,25 @@ int tightTree(Graph t, Graph g) {
 }
 
 EdgeObj _findMinSlackEdge(Graph t, Graph g) {
-  return minBy(g.edges, (e) {
-    if (t.hasNode(e.v) != t.hasNode(e.w)) {
-      return slack(g, e);
+  var edges = g.edges;
+
+  List<dynamic> acc = [double.infinity, null];
+  for (var edge in edges) {
+    double edgeSlack = double.infinity;
+    if (t.hasNode(edge.v) != t.hasNode(edge.w)) {
+      edgeSlack = slack(g, edge);
     }
-    return null;
-  });
+    if (edgeSlack < acc[0]) {
+      acc = [edgeSlack, edge];
+      continue;
+    }
+  }
+  return acc[1];
 }
 
 void _shiftRanks(Graph t, Graph g, num delta) {
   for (var v in t.nodes) {
-    g.node(v).rank = ((g.node<NodeProps>(v).rankNull??0) + delta).toInt();
+    var rank = (g.node<NodeProps>(v).rank ?? 0) + delta;
+    g.node(v).rank = rank.toInt();
   }
 }
