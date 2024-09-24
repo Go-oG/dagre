@@ -10,26 +10,21 @@ import 'model/graph_props.dart';
 void run(Graph g) {
   var root = util.addDummyNode(g, Dummy.root, NodeProps(), "_root");
   Map<String, int> depths = _treeDepths(g);
-  double height = max(depths.values)! - 1; // Note: depths is an Object not an array
+  double height = max(depths.values)! - 1;
   double nodeSep = 2 * height + 1;
   g.getLabel<GraphProps>().nestingRoot = root;
 
-  // Multiply minlen by nodeSep to align nodes on non-border ranks.
-  for (var e in g.edges) {
+  for (var e in g.edgesIterable) {
     EdgeProps p = g.edge2(e);
     p.minLen *= nodeSep;
   }
 
-  // Calculate a weight that is sufficient to keep subgraphs vertically compact
   double weight = _sumWeights(g) + 1;
 
-  // Create border nodes and link them up
   g.children().forEach((child) {
     _dfs(g, root, nodeSep, weight, height, depths, child);
   });
 
-  // Save the multiplier for node layers for later removal of empty border
-  // layers.
   g.getLabel<GraphProps>().nodeRankFactor = nodeSep;
 }
 
@@ -53,13 +48,21 @@ void _dfs(Graph g, String root, double nodeSep, double weight, double height, Ma
 
   for (var child in children) {
     _dfs(g, root, nodeSep, weight, height, depths, child);
-    var childNode = g.node(child);
+    var childNode = g.node<NodeProps>(child);
     var childTop = childNode.borderTop ?? child;
     var childBottom = childNode.borderBottom ?? child;
     var thisWeight = childNode.borderTop != null ? weight : 2 * weight;
     double minlen = childTop != childBottom ? 1 : (height - depths[v]! + 1);
-    g.setEdge(top, childTop, value: EdgeProps(weight: thisWeight, minLen: minlen, nestingEdge: true));
-    g.setEdge(childBottom, bottom, value: EdgeProps(weight: thisWeight, minLen: minlen, nestingEdge: true));
+    g.setEdge(
+      top,
+      childTop,
+      value: EdgeProps(weight: thisWeight, minLen: minlen, nestingEdge: true),
+    );
+    g.setEdge(
+      childBottom,
+      bottom,
+      value: EdgeProps(weight: thisWeight, minLen: minlen, nestingEdge: true),
+    );
   }
 
   if (g.parent(v) == null) {
@@ -98,7 +101,7 @@ void cleanup(Graph g) {
 
   for (var e in g.edges) {
     var edge = g.edge2<EdgeProps>(e);
-    if (edge.nestingEdgeNull != null && edge.nestingEdge) {
+    if (edge.nestingEdge==true) {
       g.removeEdge2(e);
     }
   }
