@@ -5,17 +5,16 @@ import 'package:dart_dagre/src/model/node_props.dart';
 import 'package:dart_dagre/src/util.dart';
 
 void addBorderSegments(Graph g) {
-  dfs(v) {
+  dfs(String v) {
     var children = g.children(v);
-    var node = g.node(v);
+    var node = g.node<NodeProps>(v);
     if (children.isNotEmpty) {
       children.forEach(dfs);
     }
-
-    if (node.minRankNull != null) {
+    if (node.minRank != null) {
       node.borderLeft = [];
       node.borderRight = [];
-      for (var rank = node.minRank, maxRank = node.maxRank + 1; rank < maxRank; ++rank) {
+      for (var rank = node.minRank!, maxRank = node.maxRank! + 1; rank < maxRank; ++rank) {
         _addBorderNode(g, "borderLeft", "_bl", v, node, rank);
         _addBorderNode(g, "borderRight", "_br", v, node, rank);
       }
@@ -33,6 +32,7 @@ void _addBorderNode(Graph g, String prop, String prefix, String sg, NodeProps sg
   label.borderType = prop;
 
   List<String> bl = prop == 'borderLeft' ? sgNode.borderLeft : sgNode.borderRight;
+
   var prev = (rank - 1 < bl.length ? bl[rank - 1] : null);
   var curr = addDummyNode(g, Dummy.border, label, prefix);
   bl[rank] = curr;
