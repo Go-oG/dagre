@@ -1,5 +1,7 @@
+import 'package:dart_dagre/dart_dagre.dart';
 import 'package:dart_dagre/src/model/enums/relationship.dart';
 import 'package:dart_dagre/src/model/graph_props.dart';
+import 'package:dart_dagre/src/model/node_props.dart';
 import 'package:dart_dagre/src/order/sort_subgraph.dart';
 import 'package:dart_dagre/src/util/list_util.dart';
 import '../graph/graph.dart';
@@ -11,16 +13,24 @@ import 'cross_count.dart';
 import 'init_order.dart';
 import 'build_layer_graph.dart';
 
-void order(Graph g) {
-  var maxRank = util.maxRank(g)!;
+void order(Graph g, GraphConfig config) {
+  var fun = config.customOrder;
+  if (fun != null) {
+    fun.call(g);
+    return;
+  }
 
+  var maxRank = util.maxRank(g)!;
   List<Graph> downLayerGraphs = _buildLayerGraphs(g, range(1, maxRank + 1), Relationship.inEdges);
   List<Graph> upLayerGraphs = _buildLayerGraphs(g, range(maxRank - 1, -1, -1), Relationship.outEdges);
 
   List<List<String>> layering = initOrder(g);
   _assignOrder(g, layering);
 
-  num bestCC = double.maxFinite;
+  if (config.disableOptimalOrderHeuristic) {
+    return;
+  }
+  num bestCC = double.infinity;
   List<List<String>> best = [];
   for (int i = 0, lastBest = 0; lastBest < 4; ++i, ++lastBest) {
     _sweepLayerGraphs((i % 2)!=0 ? downLayerGraphs : upLayerGraphs, i % 4 >= 2);
@@ -47,7 +57,7 @@ void _sweepLayerGraphs(List<Graph> layerGraphs,bool biasRight) {
     var root = lg.getLabel<GraphProps>().root!;
     ResolveConflictsResult sorted = sortSubgraph(lg, root, cg, biasRight);
     sorted.vs.each((v, i) {
-      lg.node(v).order = i;
+      lg.node<NodeProps>(v).order = i;
     });
     addSubgraphConstraints(lg, cg, sorted.vs);
   }
@@ -56,7 +66,7 @@ void _sweepLayerGraphs(List<Graph> layerGraphs,bool biasRight) {
 void _assignOrder(Graph g, List<List<String>> layering) {
   for (var layer in layering) {
     layer.each((v, i) {
-      g.node(v).order = i;
+      g.node<NodeProps>(v).order = i;
     });
   }
 }

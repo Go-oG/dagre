@@ -168,6 +168,10 @@ class GraphConfig {
   ///控制为图中每个节点分配层级的算法类型
   final Ranker ranker;
 
+  final void Function(Graph g)? customOrder;
+
+  final bool disableOptimalOrderHeuristic;
+
   GraphConfig({
     this.rankDir = RankDir.ttb,
     this.align,
@@ -178,6 +182,8 @@ class GraphConfig {
     this.nodeSep = 10,
     this.acyclicer = Acyclicer.none,
     this.ranker = Ranker.networkSimplex,
+    this.disableOptimalOrderHeuristic=false,
+    this.customOrder,
   });
 }
 
