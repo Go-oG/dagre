@@ -20,10 +20,11 @@ void positionY(Graph g) {
   num prevY = 0;
   for (var layer in layering) {
     var maxHeight = max<num>(List.from(layer.map((v) {
-      return g.node(v).height;
+      return g.node<NodeProps>(v).height;
     })))??0;
+
     for (var v in layer) {
-      g.node(v).y = prevY + maxHeight / 2;
+      g.node<NodeProps>(v).y = prevY + maxHeight / 2;
     }
 
     prevY += maxHeight + rankSep;
