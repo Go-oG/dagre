@@ -12,25 +12,28 @@ Graph buildLayerGraph(Graph g, int rank, Relationship ship) {
   gp.root = root;
   result.setLabel(gp);
   result.setDefaultNodePropsFun((v) {
-    return g.node(v);
+    return g.node<NodeProps>(v);
   });
 
   for (var v in g.nodes) {
     NodeProps node = g.node(v);
     String? parent = g.parent(v);
-    if (node.rankNull == rank || (node.minRankNull ?? double.nan) <= rank && rank <= (node.maxRankNull ?? double.nan)) {
+    if (node.rank == rank || (node.minRank ?? double.nan) <= rank && rank <= (node.maxRank ?? double.nan)) {
       result.setNode(v);
       result.setParent(v, parent ?? root);
       List<EdgeObj> tmpList = ship == Relationship.inEdges ? g.inEdges(v) : g.outEdges(v);
+
       for (var e in tmpList) {
         String u = e.v == v ? e.w : e.v;
+
         EdgeProps? edge = result.edge(u, v);
         num weight =edge?.weight??0 ;
+
         EdgeProps ep = EdgeProps.zero();
         ep.weight = (g.edge2<EdgeProps>(e)).weight + weight;
         result.setEdge(u, v, value: ep);
       }
-      if (node.minRankNull != null) {
+      if (node.minRank != null) {
         NodeProps np = NodeProps();
         np.borderLeft = [node.borderLeft[rank]];
         np.borderRight = [node.borderRight[rank]];
