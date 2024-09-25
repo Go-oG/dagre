@@ -9,7 +9,7 @@ List<List<String>> initOrder(Graph g) {
     return g.children(v).isEmpty;
   });
   var maxRank = max<int>(simpleNodes.map2((v,i) {
-    return g.node(v).rankNull;
+    return g.node<NodeProps>(v).rank!;
   }))!;
 
   List<List<String>> layers = List.from(range(0, maxRank + 1).map<List<String>>((e) {
@@ -20,13 +20,13 @@ List<List<String>> initOrder(Graph g) {
     if (visited.containsKey(v)) return;
     visited[v] = true;
     NodeProps node = g.node(v);
-    layers[node.rank].add(v);
+    layers[node.rank!].add(v);
     g.successors(v).forEach(dfs);
   }
 
-  var orderedVs = [...simpleNodes];
+  var orderedVs =simpleNodes;
   orderedVs.sort((a, b) {
-    return g.node(a).rank.compareTo(g.node(b).rank);
+    return g.node<NodeProps>(a).rank!.compareTo(g.node<NodeProps>(b).rank!);
   });
   orderedVs.forEach(dfs);
   return layers;
