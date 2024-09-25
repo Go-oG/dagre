@@ -54,6 +54,17 @@ extension ListExt<T> on List<T> {
     }
     return rl;
   }
+
+  T? find(bool Function(T) call) {
+
+    for(var item in this){
+      if(call.call(item)){
+        return item;
+      }
+    }
+    return null;
+  }
+
 }
 
 T? max<T extends num>(Iterable<T>? list) {

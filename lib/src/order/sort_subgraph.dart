@@ -50,7 +50,7 @@ ResolveConflictsResult sortSubgraph(Graph g, String v, Graph cg, bool biasRight)
         result.barycenter = 0;
         result.weight = 0;
       }
-      result.barycenter = (result.barycenter! * result.weight + blPred.order + brPred.order) / (result.weight + 2);
+      result.barycenter = (result.barycenter! * result.weight + blPred.order! + brPred.order!) / (result.weight + 2);
 
       result.weight = result.weight + 2;
     }

@@ -21,11 +21,11 @@ void networkSimplex(Graph g) {
     _exchangeEdges(t, g2, e, f);
   }
 
-  // for(var v in g2.nodes){
-  //   var np = g2.node<NodeProps>(v);
-  //   var np2 = g.node<NodeProps>(v);
-  //   np2.rank=np.rank;
-  // }
+  for(var v in g2.nodes){
+    var np = g2.node<NodeProps>(v);
+    var np2 = g.node<NodeProps>(v);
+    np2.rank=np.rank;
+  }
 }
 
 void _initCutValues(Graph t, Graph g) {
@@ -104,7 +104,7 @@ double _dfsAssignLowLim(Graph tree, Map<String, bool> visited, double nextLim, S
 }
 
 EdgeObj? leaveEdge(Graph tree) {
-  return tree.edges.firstWhere((e) {
+  return tree.edges.find((e) {
     var value = tree.edge2<EdgeProps>(e).cutValue;
     return value != null && value < 0;
   });

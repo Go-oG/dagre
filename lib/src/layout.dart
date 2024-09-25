@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:dart_dagre/dart_dagre.dart';
 import 'package:dart_dagre/src/graph/graph.dart';
 import 'package:dart_dagre/src/model/enums/dummy.dart';
 import 'package:dart_dagre/src/model/graph_rect.dart';
@@ -23,13 +24,13 @@ import 'add_border_segments.dart';
 import 'model/graph_point.dart';
 import 'order/index.dart';
 
-void layout(Graph g) {
+void layout(Graph g,GraphConfig config) {
   var layoutGraph = _buildLayoutGraph(g);
-  _runLayout(layoutGraph);
+  _runLayout(layoutGraph,config);
   _updateInputGraph(g, layoutGraph);
 }
 
-void _runLayout(Graph g) {
+void _runLayout(Graph g,GraphConfig config) {
   _makeSpaceForEdgeLabels(g);
   _removeSelfEdges(g);
   acyclic.run(g);
@@ -44,7 +45,7 @@ void _runLayout(Graph g) {
   normalize.run(g);
   parentDummyChains(g);
   addBorderSegments(g);
-  order(g);
+  order(g,config);
   _insertSelfEdges(g);
   coordinate_system.adjust(g);
   position(g);

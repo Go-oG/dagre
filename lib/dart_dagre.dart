@@ -72,7 +72,7 @@ DagreResult layout(
   props.nodeSep = config.nodeSep;
   graph.setLabel(props);
 
-  layer.layout(graph);
+  layer.layout(graph,config);
 
   DagreResult result = DagreResult(
     graph.getLabel<GraphProps>().width ?? 0,
