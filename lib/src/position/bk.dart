@@ -14,18 +14,19 @@ import 'package:dart_dagre/src/util.dart' as util;
 Map<String, Map<String, bool>> _findType1Conflicts(Graph g, List<List<String>> layering) {
   Map<String, Map<String, bool>> conflicts = {};
   visitLayer(prevLayer, List<String> layer) {
-    num k0 = 0;
+    int k0 = 0;
     int scanPos = 0;
-    num prevLayerLength = prevLayer.length;
+    int prevLayerLength = prevLayer.length;
     var lastNode = layer.last;
     layer.each((v, i) {
       String? w = _findOtherInnerSegmentNode(g, v);
-      num k1 = w != null ? g.node(w).order : prevLayerLength;
+      int k1 = w != null ? g.node<NodeProps>(w).order! : prevLayerLength;
       if (w != null || v == lastNode) {
         layer.sublist(scanPos, i + 1).forEach((scanNode) {
           g.predecessors(scanNode).forEach((u) {
-            var uLabel = g.node(u), uPos = uLabel.order;
-            if ((uPos < k0 || k1 < uPos) && uLabel.dummyNull==null && g.node(scanNode).dummyNull!=null) {
+            var uLabel = g.node<NodeProps>(u);
+            var uPos = uLabel.order!;
+            if ((uPos < k0 || k1 < uPos) && uLabel.dummy != null && g.node<NodeProps>(scanNode).dummy != null) {
               _addConflict(conflicts, u, scanNode);
             }
           });
@@ -36,20 +37,23 @@ Map<String, Map<String, bool>> _findType1Conflicts(Graph g, List<List<String>> l
     });
     return layer;
   }
-  layering.reduce(visitLayer);
+
+  if (layering.isNotEmpty) {
+    layering.reduce(visitLayer);
+  }
   return conflicts;
 }
 
 Map<String, Map<String, bool>> _findType2Conflicts(Graph g, List<List<String>> layering) {
   Map<String, Map<String, bool>> conflicts = {};
-  scan(List<String> south, int southPos, int southEnd, int? prevNorthBorder, num nextNorthBorder) {
+  scan(List<String> south, int southPos, int southEnd, num prevNorthBorder, num nextNorthBorder) {
     String v;
     range(southPos, southEnd).forEach((i) {
       v = south[i];
-      if (g.node(v).dummyNull != null) {
+      if (g.node<NodeProps>(v).dummy != null) {
         g.predecessors(v).forEach((u) {
-          var uNode = g.node(u);
-          if (uNode.dummyNull != null && (uNode.order < (prevNorthBorder ?? double.nan) || uNode.order > nextNorthBorder)) {
+          var uNode = g.node<NodeProps>(u);
+          if (uNode.dummy != null && (uNode.order! < prevNorthBorder || uNode.order! > nextNorthBorder)) {
             _addConflict(conflicts, u, v);
           }
         });
@@ -62,34 +66,32 @@ Map<String, Map<String, bool>> _findType2Conflicts(Graph g, List<List<String>> l
     int? nextNorthPos;
     int southPos = 0;
     south.each((v, southLookahead) {
-      if (Dummy.border == g.node(v).dummyNull) {
+      if (Dummy.border == g.node<NodeProps>(v).dummy) {
         var predecessors = g.predecessors(v);
         if (predecessors.isNotEmpty) {
-          nextNorthPos = g.node(predecessors[0]).order;
+          nextNorthPos = g.node<NodeProps>(predecessors[0]).order!;
           scan(south, southPos, southLookahead, prevNorthPos, nextNorthPos!);
           southPos = southLookahead;
           prevNorthPos = nextNorthPos!;
         }
       }
-      scan(south, southPos, south.length, nextNorthPos, north.length);
+      scan(south, southPos, south.length, nextNorthPos ?? double.nan, north.length);
     });
     return south;
   }
 
-  layering.reduce2(visitLayer);
+  if (layering.isNotEmpty) {
+    layering.reduce2(visitLayer);
+  }
   return conflicts;
 }
 
 String? _findOtherInnerSegmentNode(Graph g, String v) {
-  try{
-    if (g.node(v).dummyNull != null) {
-      return g.predecessors(v).firstWhere((u) {
-        return g.node(u).dummyNull!=null;
-      });
-    }
-  }catch(_){
+  if (g.node<NodeProps>(v).dummy != null) {
+    return g.predecessors(v).firstWhere((u) {
+      return g.node<NodeProps>(u).dummy != null;
+    });
   }
-
   return null;
 }
 
@@ -114,7 +116,7 @@ bool _hasConflict(Map<String,Map<String,bool>> conflicts, String v, String w) {
     v = w;
     w = tmp;
   }
-  return conflicts[v]?.containsKey(w)??false;
+  return conflicts[v]!=null&&conflicts[v]!.containsKey(w);
 }
 
 _InnerResult _verticalAlignment(
@@ -176,7 +178,6 @@ Map<String, double> _horizontalCompaction(
   iterate(void Function(String) setXsFunc,bool predecessors) {
     var stack = blockG.nodes;
     Map<String, bool> visited = {};
-
     while (stack.isNotEmpty) {
       String elem=stack.removeLast();
       if ((visited[elem] ?? false)) {
@@ -184,11 +185,13 @@ Map<String, double> _horizontalCompaction(
       } else {
         visited[elem] = true;
         stack.add(elem);
+
         if(predecessors){
           stack = stack.concat(blockG.predecessors(elem));
         }else{
           stack = stack.concat(blockG.successors(elem));
         }
+
       }
     }
   }
@@ -216,8 +219,7 @@ Map<String, double> _horizontalCompaction(
   iterate(pass1, true);
   iterate(pass2, false);
 
-  // Assign x coordinates to all nodes
-  for (var v in align.values) {
+  for(var v in align.keys){
     xs[v] = xs[root[v]]!;
   }
   return xs;
@@ -234,9 +236,10 @@ Graph _buildBlockGraph(Graph g, List<List<String>> layering, Map<String, String>
       blockGraph.setNode(vRoot);
       if (u != null) {
         var uRoot = root[u]!;
-        double? prevMax = blockGraph.edge<EdgeProps?>(uRoot, vRoot)?.value;
+        num prevMax = blockGraph.edge<EdgeProps?>(uRoot, vRoot)?.value??0;
+
         EdgeProps p = EdgeProps();
-        p.value = math.max(sepFn.call(g, v, u), prevMax??0).toDouble();
+        p.value = math.max(sepFn.call(g, v, u), prevMax).toDouble();
         blockGraph.setEdge(uRoot, vRoot, value: p);
       }
       u = v;
@@ -245,20 +248,24 @@ Graph _buildBlockGraph(Graph g, List<List<String>> layering, Map<String, String>
   return blockGraph;
 }
 
-/*
- * 返回给定对齐中宽度最小的对齐
- */
+
 Map<String, double> _findSmallestWidthAlignment(Graph g, Map<GraphAlign, Map<String, double>> xss) {
-  return minBy(List.from(xss.values), (xs) {
+  List<dynamic> initValue=[double.infinity,null];
+  for(var item in xss.values){
     double max = double.minPositive;
     double min = double.maxFinite;
-    xs.forEach((x, v) {
-      var halfWidth = _width(g, x) / 2;
-      max = math.max(v + halfWidth, max);
-      min = math.min(v - halfWidth, min);
-    });
-    return max - min;
-  });
+    for(var child in item.entries){
+      var halfWidth = _width(g, child.key) / 2;
+      max = math.max(child.value + halfWidth, max);
+      min = math.min(child.value - halfWidth, min);
+    }
+    var newMin = max - min;
+    if (newMin < initValue[0]) {
+      initValue = [newMin, item];
+    }
+  }
+  return (initValue[1] as Map<String,double>?)??{};
+
 }
 
 void _alignCoordinates(Map<GraphAlign, Map<String, double>> xss, Map<String, double> alignTo) {
@@ -269,13 +276,15 @@ void _alignCoordinates(Map<GraphAlign, Map<String, double>> xss, Map<String, dou
       GraphAlign alignment = fromStr('${vert}t$horiz');
       Map<String, double> xs = xss[alignment]!;
       double delta;
-
       if (xs == alignTo){
         continue;
       }
 
       List<double> xsVals = List.from(xs.values);
-      delta = horiz == "l" ? alignToMin - min(xsVals)! : alignToMax - max(xsVals)!;
+      delta=alignToMin - min(xsVals)!;
+      if(horiz!="l"){
+        delta=alignToMax - max(xsVals)!;
+      }
       if (delta!=0) {
         Map<String, double> rm = {};
         xs.forEach((key, value) {
@@ -288,7 +297,7 @@ void _alignCoordinates(Map<GraphAlign, Map<String, double>> xss, Map<String, dou
 }
 
 Map<String, double> _balance(Map<GraphAlign, Map<String, double>> xss, GraphAlign? align) {
-  Map<String, double> ulMap = xss[GraphAlign.utl]!;
+  Map<String, double> ulMap = xss[GraphAlign.utl]??{};
   Map<String, double> map = {};
   for (var key in ulMap.keys) {
     double d;
@@ -297,10 +306,7 @@ Map<String, double> _balance(Map<GraphAlign, Map<String, double>> xss, GraphAlig
     } else {
       List<double> xs=[];
       for(var ve in xss.values){
-        double? rn=ve[key];
-        if(rn!=null){
-          xs.add(rn);
-        }
+        xs.add(ve[key]!);
       }
       xs.sort();
       d = (xs[1] + xs[2]) / 2;
@@ -348,20 +354,22 @@ num Function(Graph, String, String) _sep(num nodeSep, num edgeSep, bool reverseS
     num sum = 0;
     num delta = 0;
     sum += vLabel.width / 2;
-    if (vLabel.labelPosNull == LabelPosition.left) {
+    if (vLabel.labelPos == LabelPosition.left) {
       delta = -vLabel.width / 2;
-    } else if (vLabel.labelPosNull == LabelPosition.right) {
+    } else if (vLabel.labelPos == LabelPosition.right) {
       delta = vLabel.width / 2;
     }
+
     if (delta != 0) {
       sum += reverseSep ? delta : -delta;
     }
+
     delta = 0;
-    sum += (vLabel.dummyNull != null ? edgeSep : nodeSep) / 2;
-    sum += (wLabel.dummyNull != null ? edgeSep : nodeSep) / 2;
+    sum += (vLabel.dummy != null ? edgeSep : nodeSep) / 2;
+    sum += (wLabel.dummy!= null ? edgeSep : nodeSep) / 2;
     sum += wLabel.width / 2;
 
-    var lab = wLabel.labelPosNull;
+    var lab = wLabel.labelPos;
     if (lab == LabelPosition.left) {
       delta = wLabel.width / 2;
     } else if (lab == LabelPosition.right) {
@@ -370,6 +378,7 @@ num Function(Graph, String, String) _sep(num nodeSep, num edgeSep, bool reverseS
     if (delta != 0) {
       sum += reverseSep ? delta : -delta;
     }
+
     delta = 0;
     return sum;
   };
