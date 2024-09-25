@@ -37,11 +37,11 @@ List<ResolveConflictsResult> resolveConflicts(List<OrderInnerResult> entries, Gr
 List<ResolveConflictsResult> _doResolveConflicts(List<ConflictInfo> sourceSet) {
   List<ConflictInfo> entries = [];
   handleIn(ConflictInfo vEntry) {
-    return (uEntry) {
+    return (ConflictInfo uEntry) {
       if (uEntry.merged) {
         return;
       }
-      if (uEntry.barycenter == null || vEntry.barycenter == null || uEntry.barycenter >= vEntry.barycenter) {
+      if (uEntry.barycenter == null || vEntry.barycenter == null || uEntry.barycenter! >= vEntry.barycenter!) {
         _mergeEntries(vEntry, uEntry);
       }
     };
@@ -59,7 +59,7 @@ List<ResolveConflictsResult> _doResolveConflicts(List<ConflictInfo> sourceSet) {
   while (sourceSet.isNotEmpty) {
     var entry = sourceSet.removeLast();
     entries.add(entry);
-    entry.inner.reverse2().forEach(handleIn(entry));
+    entry.inner.reversed.forEach(handleIn(entry));
     entry.out.forEach(handleOut(entry));
   }
 
