@@ -16,7 +16,7 @@ void addSubgraphConstraints(Graph g, Graph cg, List<String> vs) {
         rootPrev = child;
       }
       if (prevChild != null && prevChild != child) {
-        cg.setEdge(prevChild, child);
+        cg.setEdge2(prevChild, child);
         break;
       }
       child = parent;

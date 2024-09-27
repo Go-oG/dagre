@@ -4,69 +4,86 @@ import 'package:dart_dagre/src/graph/graph.dart';
 import 'package:dart_dagre/src/model/array.dart';
 import 'package:dart_dagre/src/model/graph_point.dart';
 import 'package:dart_dagre/src/model/graph_rect.dart';
-import 'package:dart_dagre/src/model/edge_props.dart';
-import 'package:dart_dagre/src/model/node_props.dart';
+import 'package:dart_dagre/src/model/props.dart';
 import 'package:dart_dagre/src/util/list_util.dart';
 import 'package:dart_dagre/src/util/util.dart';
 import 'package:flutter/widgets.dart';
-
-import 'model/graph_props.dart';
 import 'model/tmp/split.dart' as sp;
 import 'model/enums/dummy.dart';
 
-String addDummyNode(Graph g, Dummy type, NodeProps attrs, String? name) {
+String addDummyNode(Graph g, Dummy type, Props attrs, String? name) {
   String v;
   do {
     v = uniqueId(name ?? '');
   } while (g.hasNode(v));
-  attrs.dummy = type;
+  attrs[dummyK] = type;
   g.setNode(v, attrs);
   return v;
 }
 
-/*
- * Returns a new graph with only simple edges. Handles aggregation of data
- * associated with multi-edges.
- */
 Graph simplify(Graph g) {
-  var simplified = Graph().setLabel(g.getLabel<GraphProps>());
+  var simplified = Graph()..label = g.label;
   for (var v in g.nodes) {
     simplified.setNode(v,g.node(v));
   }
+
   for (var e in g.edges) {
-    var simpleLabel = simplified.edge<EdgeProps?>(e.v, e.w, e.id) ?? EdgeProps(weight: 0, minLen: 1);
-    var label = g.edge2<EdgeProps>(e);
-    EdgeProps p = EdgeProps(weight: simpleLabel.weight + label.weight, minLen: math.max(simpleLabel.minLen, label.minLen));
-    simplified.setEdge(e.v, e.w, value: p);
+    var simpleLabel = simplified.edgeNull(e.v, e.w) ?? {weightK: 0, minLenK: 1}.toProps;
+    var label = g.edge2(e);
+
+    var p = {
+      weightK: simpleLabel.getD(weightK) + label.getD(weightK),
+      minLenK: math.max(
+        simpleLabel.getD(minLenK),
+        label.getD(minLenK))
+    };
+    simplified.setEdge2(e.v, e.w, value: p.toProps);
   }
   return simplified;
 }
 
 Graph asNonCompoundGraph(Graph g) {
-  var simplified = Graph(isMultiGraph: g.isMultiGraph).setLabel(g.getLabel<GraphProps>());
+  var simplified = Graph(isMultiGraph: g.isMultiGraph);
+  simplified.label = g.label;
   for (var v in g.nodes) {
     var children=g.children(v);
-    if (children.isEmpty) {
-      var nv=g.node<NodeProps>(v);
-      simplified.setNode(v,nv);
+    if (children == null || children.isEmpty) {
+      simplified.setNode(v, g.node(v));
     }
   }
   for (var e in g.edges) {
-    simplified.setEdge2(e, g.edge2(e));
+    simplified.setEdge(e, g.edge2(e));
   }
   return simplified;
 }
 
-/*
- * Finds where a line starting at point ({x, y}) would intersect a rectangle
- * ({x, y, width, height}) if it were pointing at the rectangle's center.
- */
+Map<String, Map<String, double>> successorWeights(Graph g) {
+  var weightMap = g.nodes.map((v) {
+    Map<String, double> sucs = {};
+    g.outEdges(v)?.forEach((e) {
+      var v = sucs[e.w] ?? 0;
+      sucs[e.w] = v + g.edge2(e).getD(weightK);
+    });
+    return sucs;
+  }).toList();
+  return zipObject(g.nodes, weightMap);
+}
+
+Map<String, Map<String, double>> predecessorWeights(Graph g) {
+  var weightMap = g.nodes.map((v) {
+    Map<String, double> preds = {};
+    g.inEdges(v)?.forEach((e) {
+      var v = preds[e.v] ?? 0;
+      preds[e.v] = v + g.edge2(e).getD(weightK);
+    });
+    return preds;
+  }).toList();
+  return zipObject(g.nodes, weightMap);
+}
+
 GraphPoint intersectRect(GraphRect rect, GraphPoint point) {
   var x = rect.x;
   var y = rect.y;
-
-  // Rectangle intersection algorithm from:
-  // http://math.stackexchange.com/questions/108113/find-edge-between-two-boxes
   var dx = point.x - x;
   var dy = point.y - y;
   var w = rect.width / 2;
@@ -93,10 +110,6 @@ GraphPoint intersectRect(GraphRect rect, GraphPoint point) {
   return GraphPoint(x + sx, y + sy);
 }
 
-/*
- * Given a DAG with each node assigned "rank" and "order" properties, this
- * function will produce a matrix with the ids of each node.
- */
 List<List<String>> buildLayerMatrix(Graph g) {
   List<Array<String>> layering = [];
   int v =maxRank(g)! +1;
@@ -105,9 +118,9 @@ List<List<String>> buildLayerMatrix(Graph g) {
   }
   for (var v in g.nodes) {
     var node = g.node(v);
-    int? rank = node.rankNull;
+    int? rank = node.getI2(rankK);
     if (rank != null) {
-      layering[rank][node.order] = v;
+      layering[rank][node.getI(orderK)] = v;
     }
   }
   List<List<String>> rl = [];
@@ -117,27 +130,30 @@ List<List<String>> buildLayerMatrix(Graph g) {
   return rl;
 }
 
-/*
- * Adjusts the ranks for all nodes in the graph such that all nodes v have
- * rank(v) >= 0 and at least one node w has rank(w) = 0.
- */
 void normalizeRanks(Graph g) {
-  var minv = (min(g.nodes.map((v)=> g.node(v).rank)))!.toInt();
-  for (var v in g.nodes) {
+  var nodeRanks = g.nodes.map((v) {
+    var rank = g.node(v).getD2(rankK);
+    if (rank == null) {
+      return double.maxFinite;
+    }
+    return rank;
+  }).toList();
+
+  var minV = min(nodeRanks)!;
+  for (var v in g.nodesIterable) {
     var node = g.node(v);
-    if (node.rankNull != null) {
-      node.rank -= minv;
+    if (node.hasOwn(rankK)) {
+      node[rankK] = node.getD(rankK) - minV;
     }
   }
 }
 
 void removeEmptyRanks(Graph g) {
-  // Ranks may not start at 0, so we need to offset them
-  List<int> rankList = g.nodes.map2((p0, p1) => g.node(p0).rankNull);
-  var offset = min(rankList) ?? 0;
+  List<int> rankList = g.nodes.map2((p0, p1) => g.node(p0).getI(rankK));
+  int offset = (min(rankList) ?? 0).toInt();
   Array<List<String>> layers = Array();
   for (var v in g.nodes) {
-    var rank = (g.node(v).rank - offset).toInt();
+    var rank = g.node(v).getI(rankK) - offset;
     if (!layers.has(rank)) {
       layers[rank] = [];
     }
@@ -145,34 +161,38 @@ void removeEmptyRanks(Graph g) {
   }
 
   var delta = 0;
-  var nodeRankFactor = g.getLabel<GraphProps>().nodeRankFactor;
+  var nodeRankFactor = g.label.getD(nodeRankFactorK);
 
   layers.forEach((vs, i) {
     if ((vs == null||vs.isEmpty) && i % nodeRankFactor != 0) {
       --delta;
-    } else if (delta != 0) {
-      for (var v in vs!) {
-        g.node(v).rank +=delta;
+    } else if ((vs!=null&&vs.isNotEmpty)&&delta != 0) {
+      for (var v in vs) {
+        var p = g.node(v);
+        p[rankK] = p.getD(rankK) + delta;
       }
     }
   });
 }
 
 String addBorderNode(Graph g, [String? prefix, int? rank, int? order]) {
-  NodeProps np = NodeProps(width: 0,height: 0);
-  if (rank != null && order != null) {
-    np.rank = rank;
-    np.order = order;
+  var np = {widthK: 0, heightK: 0}.toProps;
+  if (rank != null) {
+    np[rankK] = rank;
+  }
+  if (order != null) {
+    np[orderK] = order;
   }
   return addDummyNode(g, Dummy.border, np, prefix);
 }
 
 int? maxRank(Graph g) {
   return max(g.nodes.map2((v, i) {
-    return g.node<NodeProps>(v).rankNull;
+    var r = g.node(v).getD2(rankK);
+    r ??= double.minPositive;
+    return r;
   }))?.toInt();
 }
-
 
 sp.Split<T> partition<T>(List<T> collection, bool Function(T) fn) {
   sp.Split<T> split = sp.Split();
@@ -184,4 +204,46 @@ sp.Split<T> partition<T>(List<T> collection, bool Function(T) fn) {
     }
   }
   return split;
+}
+
+Map<String, Map<String, double>> zipObject(List<String> props, List<Map<String, double>> values) {
+  Map<String, Map<String, double>> result = {};
+  int i = 0;
+  for (var item in props) {
+    result[item] = values[i];
+    i++;
+  }
+  return result;
+}
+
+dynamic applyWithChunking<T>(dynamic Function(List<dynamic>) fn, List<T> argsArray) {
+  if (argsArray.length > CHUNKING_THRESHOLD) {
+    var chunks = splitToChunks(argsArray);
+    return fn.call(chunks.map((chunk) => fn.call(chunk)).toList());
+  } else {
+    return fn.call(argsArray);
+  }
+}
+
+const int CHUNKING_THRESHOLD = 65535;
+
+List<List<T>> splitToChunks<T>(List<T> array, [int chunkSize = CHUNKING_THRESHOLD]) {
+  List<List<T>> chunks = [];
+  for (var i = 0; i < array.length; i += chunkSize) {
+    var end = i + chunkSize;
+    if (end > array.length) {
+      end = array.length;
+    }
+    chunks.add(array.sublist(i, end));
+  }
+  return chunks;
+}
+
+void printGraph(Graph g) {
+  for (var v in g.nodes) {
+    print("Node $v: ${g.node(v)}");
+  }
+  for (var e in g.edges) {
+    print("Edge ${e.v}->${e.w}: ${g.edge2(e)}");
+  }
 }

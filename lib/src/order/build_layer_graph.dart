@@ -1,6 +1,5 @@
-import 'package:dart_dagre/src/model/edge_props.dart';
-import 'package:dart_dagre/src/model/graph_props.dart';
-import 'package:dart_dagre/src/model/node_props.dart';
+import 'package:dart_dagre/src/model/graph_label.dart';
+import 'package:dart_dagre/src/model/props.dart';
 import '../graph/graph.dart';
 import '../model/enums/relationship.dart';
 import '../util/util.dart';
@@ -8,33 +7,36 @@ import '../util/util.dart';
 Graph buildLayerGraph(Graph g, int rank, Relationship ship) {
   String root = _createRootNode(g);
   Graph result = Graph(isCompound: true);
-  GraphProps gp = GraphProps();
-  gp.root = root;
-  result.setLabel(gp);
+  GraphLabel gp = GraphLabel();
+  gp[rootK] = root;
+  result.label = gp;
   result.setDefaultNodePropsFun((v) {
-    return g.node(v);
+    return g.nodeNull(v);
   });
 
   for (var v in g.nodes) {
-    NodeProps node = g.node(v);
+    Props node = g.node(v);
     String? parent = g.parent(v);
-    if (node.rankNull == rank || (node.minRankNull ?? double.nan) <= rank && rank <= (node.maxRankNull ?? double.nan)) {
+    if (node.getI2(rankK) == rank ||
+        (node.getD2(minRankK) ?? double.nan) <= rank && rank <= (node.getD2(maxRankK) ?? double.nan)) {
       result.setNode(v);
       result.setParent(v, parent ?? root);
-      List<EdgeObj> tmpList = ship == Relationship.inEdges ? g.inEdges(v) : g.outEdges(v);
+      List<Edge> tmpList = (ship == Relationship.inEdges ? g.inEdges(v) : g.outEdges(v)) ?? [];
+
       for (var e in tmpList) {
         String u = e.v == v ? e.w : e.v;
-        EdgeProps? edge = result.edge(u, v);
-        num weight =edge?.weight??0 ;
-        EdgeProps ep = EdgeProps.zero();
-        ep.weight = (g.edge2<EdgeProps>(e)).weight + weight;
-        result.setEdge(u, v, value: ep);
+        Props? edge = result.edgeNull(u, v);
+        num weight = edge?.getD2(weightK) ?? 0;
+
+        Props ep = Props();
+        ep[weightK] = (g.edge2(e)).getD(weightK) + weight;
+        result.setEdge2(u, v, value: ep);
       }
-      if (node.minRankNull != null) {
-        NodeProps np = NodeProps();
-        np.borderLeft = [node.borderLeft[rank]];
-        np.borderRight = [node.borderRight[rank]];
-        result.setNode(v, np);
+      if (node.hasOwn(minRankK)) {
+        Props ps = Props();
+        ps[borderLeftK] = [node.get<List<dynamic>>(borderLeftK)[rank]];
+        ps[borderRightK] = [node.get<List<dynamic>>(borderRightK)[rank]];
+        result.setNode(v, ps);
       }
     }
   }

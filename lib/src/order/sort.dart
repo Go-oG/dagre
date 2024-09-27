@@ -7,16 +7,15 @@ ResolveConflictsResult sort(List<ResolveConflictsResult> entries, bool biasRight
     return entry.barycenter != null;
   });
   List<ResolveConflictsResult> sortable = parts.lhs;
-  List<ResolveConflictsResult> tl = List.from(parts.rhs);
-  tl.sort((a,b){
-    return (-a.i).compareTo(-b.i);
+  List<ResolveConflictsResult> unsortable=parts.rhs;
+  unsortable.sort((a,b){
+    return (b.i).compareTo(a.i);
   });
-  List<ResolveConflictsResult> unsortable = tl;
 
   List<String> vs = [];
   num sum = 0, weight = 0;
   int vsIndex = 0;
-  sortable.sort(_compareWithBias(!!biasRight));
+  sortable.sort(_compareWithBias(biasRight));
   vsIndex = _consumeUnsortable(vs, unsortable, vsIndex);
   for (var entry in sortable) {
     vsIndex += entry.vs.length;

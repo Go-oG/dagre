@@ -1,29 +1,39 @@
-import 'package:dart_dagre/src/model/edge_props.dart';
+import 'package:dart_dagre/src/model/props.dart';
 
 import '../graph/graph.dart';
 import '../util/list_util.dart';
 
 Graph longestPath(Graph g) {
   Map<String, bool> visited = {};
-  dfs(v) {
+
+  double dfs(String v) {
     var label = g.node(v);
     if (visited.containsKey(v)) {
-      return label.rank;
+      return label.getD(rankK);
     }
     visited[v] = true;
-    num? rank = min(g.outEdges(v).map((e) {
-      return dfs(e.w) - g.edge2<EdgeProps>(e).minLen;
-    }));
-    if (rank == null || rank.isInfinite) {
-      rank = 0;
+
+    var outEdgesMinLens = g.outEdges(v)!.map((e) {
+      return dfs(e.w) - g.edge2(e).getD(minLenK);
+    });
+    double? rankValue = min(outEdgesMinLens)?.toDouble();
+
+    rankValue ??= double.infinity;
+    if (rankValue.isInfinite || rankValue.isNaN) {
+      rankValue = 0;
     }
-    label.rank = rank.toInt();
-    return rank;
+    label[rankK] = rankValue;
+    return rankValue;
   }
-  g.sources.forEach(dfs);
+
+  for (var s in g.sources) {
+    dfs(s);
+  }
   return g;
 }
 
-num slack(Graph g, EdgeObj e) {
-  return g.node(e.w).rank - g.node(e.v).rank - g.edge2<EdgeProps>(e).minLen;
+double slack(Graph g, Edge e) {
+  var r1 = g.node(e.w).getD(rankK);
+  var r2 = g.node(e.v).getD(rankK);
+  return r1 - r2 - g.edge2(e).getD(minLenK);
 }

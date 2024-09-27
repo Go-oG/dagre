@@ -14,6 +14,20 @@ extension ListExt<T> on List<T> {
     return List.from(reversed);
   }
 
+  List<T> reverseSelf() {
+    List<T> list = reverse2();
+    clear();
+    addAll(list);
+    return this;
+  }
+
+  T? removeLastOrNull() {
+    if (isEmpty) {
+      return null;
+    }
+    return removeLast();
+  }
+
   void each(void Function(T, int) call) {
     int i = 0;
     for (var ele in this) {
@@ -54,6 +68,17 @@ extension ListExt<T> on List<T> {
     }
     return rl;
   }
+
+  T? find(bool Function(T) call) {
+
+    for(var item in this){
+      if(call.call(item)){
+        return item;
+      }
+    }
+    return null;
+  }
+
 }
 
 T? max<T extends num>(Iterable<T>? list) {

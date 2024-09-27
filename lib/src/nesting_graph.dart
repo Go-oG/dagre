@@ -1,43 +1,34 @@
 import 'package:dart_dagre/src/graph/graph.dart';
 import 'package:dart_dagre/src/model/enums/dummy.dart';
-import 'package:dart_dagre/src/model/edge_props.dart';
-import 'package:dart_dagre/src/model/node_props.dart';
+import 'package:dart_dagre/src/model/props.dart';
 import 'package:dart_dagre/src/util.dart' as util;
 import 'package:dart_dagre/src/util/list_util.dart';
 
-import 'model/graph_props.dart';
 
 void run(Graph g) {
-  var root = util.addDummyNode(g, Dummy.root, NodeProps(), "_root");
+  var root = util.addDummyNode(g, Dummy.root, Props(), "_root");
   Map<String, int> depths = _treeDepths(g);
-  double height = max(depths.values)! - 1; // Note: depths is an Object not an array
+  double height = max(depths.values)! - 1;
   double nodeSep = 2 * height + 1;
-  g.getLabel<GraphProps>().nestingRoot = root;
+  g.label[nestingRootK] = root;
 
-  // Multiply minlen by nodeSep to align nodes on non-border ranks.
-  for (var e in g.edges) {
-    EdgeProps p = g.edge2(e);
-    p.minLen *= nodeSep;
+  for (var e in g.edgesIterable) {
+    var p = g.edge2(e);
+    p[minLenK] = p.getD(minLenK) * nodeSep;
   }
-
-  // Calculate a weight that is sufficient to keep subgraphs vertically compact
   double weight = _sumWeights(g) + 1;
-
-  // Create border nodes and link them up
-  g.children().forEach((child) {
+  g.children()?.forEach((child) {
     _dfs(g, root, nodeSep, weight, height, depths, child);
   });
 
-  // Save the multiplier for node layers for later removal of empty border
-  // layers.
-  g.getLabel<GraphProps>().nodeRankFactor = nodeSep;
+  g.label[nodeRankFactorK] = nodeSep;
 }
 
 void _dfs(Graph g, String root, double nodeSep, double weight, double height, Map<String, int> depths, String v) {
   var children = g.children(v);
-  if (children.isEmpty) {
+  if (children == null || children.isEmpty) {
     if (v != root) {
-      g.setEdge(root, v, value: EdgeProps(weight: 0, minLen: nodeSep));
+      g.setEdge2(root, v, value: {"weight": 0, "minLen": nodeSep}.toProps);
     }
     return;
   }
@@ -47,23 +38,27 @@ void _dfs(Graph g, String root, double nodeSep, double weight, double height, Ma
   var label = g.node(v);
 
   g.setParent(top, v);
-  label.borderTop = top;
+  label[borderTopK] = top;
   g.setParent(bottom, v);
-  label.borderBottom = bottom;
+  label[borderBottomK] = bottom;
 
   for (var child in children) {
     _dfs(g, root, nodeSep, weight, height, depths, child);
     var childNode = g.node(child);
-    var childTop = childNode.borderTop ?? child;
-    var childBottom = childNode.borderBottom ?? child;
-    var thisWeight = childNode.borderTop != null ? weight : 2 * weight;
+    String childTop = childNode[borderTopK] ?? child;
+    String childBottom = childNode[borderBottomK] ?? child;
+    var thisWeight = childNode[borderTopK] != null ? weight : 2 * weight;
     double minlen = childTop != childBottom ? 1 : (height - depths[v]! + 1);
-    g.setEdge(top, childTop, value: EdgeProps(weight: thisWeight, minLen: minlen, nestingEdge: true));
-    g.setEdge(childBottom, bottom, value: EdgeProps(weight: thisWeight, minLen: minlen, nestingEdge: true));
+    g.setEdge2(top, childTop, value: ({weightK: thisWeight, minLenK: minlen, nestingEdgeK: true}.toProps));
+    g.setEdge2(
+      childBottom,
+      bottom,
+      value: {weightK: thisWeight, minLenK: minlen, nestingEdgeK: true}.toProps,
+    );
   }
 
   if (g.parent(v) == null) {
-    g.setEdge(root, top, value: EdgeProps(weight: 0, minLen: height + depths[v]!));
+    g.setEdge2(root, top, value: {weightK: 0, minLenK: height + depths[v]!}.toProps);
   }
 }
 
@@ -71,7 +66,7 @@ Map<String, int> _treeDepths(Graph g) {
   Map<String, int> depths = {};
   dfs(v, depth) {
     var children = g.children(v);
-    if (children.isNotEmpty) {
+    if (children != null && children.isNotEmpty) {
       for (var child in children) {
         dfs(child, depth + 1);
       }
@@ -79,7 +74,7 @@ Map<String, int> _treeDepths(Graph g) {
     depths[v] = depth;
   }
 
-  g.children().forEach((v) {
+  g.children()?.forEach((v) {
     dfs(v, 1);
   });
   return depths;
@@ -87,18 +82,18 @@ Map<String, int> _treeDepths(Graph g) {
 
 num _sumWeights(Graph g) {
   return g.edges.reduce2<num>((acc, e) {
-    return e + (g.edge2<EdgeProps>(acc).weight);
+    return e + (g.edge2(acc).getD(weightK));
   }, 0);
 }
 
 void cleanup(Graph g) {
-  var graphLabel = g.getLabel<GraphProps>();
-  g.removeNode(graphLabel.nestingRoot);
-  graphLabel.nestingRoot = null;
+  var graphLabel = g.label;
+  g.removeNode(graphLabel.getS(nestingRootK));
+  graphLabel.remove(nestingRootK);
 
   for (var e in g.edges) {
-    var edge = g.edge2<EdgeProps>(e);
-    if (edge.nestingEdgeNull != null && edge.nestingEdge) {
+    var edge = g.edge2(e);
+    if (edge.get2(nestingEdgeK) == true) {
       g.removeEdge2(e);
     }
   }

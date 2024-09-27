@@ -1,8 +1,9 @@
+import 'package:dart_dagre/src/model/props.dart';
+
 import '../../graph/graph.dart';
-import '../edge_props.dart';
 
 class SelfEdgeData{
-  EdgeObj e;
-  EdgeProps data;
+  Edge e;
+  Props data;
   SelfEdgeData(this.e,this.data);
 }

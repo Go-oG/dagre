@@ -1,22 +1,22 @@
+import 'package:dart_dagre/src/model/props.dart';
 import 'package:dart_dagre/src/order/resolve_conflicts.dart';
 import 'package:dart_dagre/src/order/sort.dart';
-import 'package:dart_dagre/src/model/node_props.dart';
+import 'package:dart_dagre/src/util/list_util.dart';
 import '../graph/graph.dart';
 import '../model/tmp/resolve_conflicts_result.dart';
-import '../util/list_util.dart';
 import 'barycenter.dart';
 import '../model/tmp/order_inner_result.dart';
 
 ResolveConflictsResult sortSubgraph(Graph g, String v, Graph cg, bool biasRight) {
-  List<String> movable = g.children(v);
-  NodeProps? node = g.node(v);
+  List<String> movable = g.children(v)??[];
+  Props? node = g.nodeNull(v);
   String? bl;
-  if (node != null && node.borderLeft.isNotEmpty) {
-    bl = node.borderLeft.first;
+  if (node != null && node.get<List<dynamic>>(borderLeftK).isNotEmpty) {
+    bl = node.get<List<String>>(borderLeftK).first;
   }
   String? br;
-  if (node != null && node.borderRight.isNotEmpty) {
-    br = node.borderRight.first;
+  if (node != null && node.get<List<dynamic>>(borderRightK).isNotEmpty) {
+    br = node.get<List<String>>(borderRightK).first;
   }
 
   Map<String, ResolveConflictsResult> subgraphs = {};
@@ -29,7 +29,8 @@ ResolveConflictsResult sortSubgraph(Graph g, String v, Graph cg, bool biasRight)
 
   List<OrderInnerResult> barycenters = barycenter(g, movable);
   for (var entry in barycenters) {
-    if (g.children(entry.v).isNotEmpty) {
+    var list=g.children(entry.v);
+    if (list!=null&&list.isNotEmpty) {
       var subgraphResult = sortSubgraph(g, entry.v, cg, biasRight);
       subgraphs[entry.v] = subgraphResult;
       if (subgraphResult.barycenter != null) {
@@ -43,14 +44,14 @@ ResolveConflictsResult sortSubgraph(Graph g, String v, Graph cg, bool biasRight)
   ResolveConflictsResult result = sort(entries, biasRight);
   if (bl != null) {
     result.vs = [bl, ...result.vs, br!];
-    if (g.predecessors(bl).isNotEmpty) {
-      NodeProps blPred = g.node(g.predecessors(bl)[0]);
-      NodeProps brPred = g.node(g.predecessors(br)[0]);
+    if ((g.predecessors(bl)??[]).isNotEmpty) {
+      Props blPred = g.node(g.predecessors(bl)![0]);
+      Props brPred = g.node(g.predecessors(br)![0]);
       if (result.barycenter == null) {
         result.barycenter = 0;
         result.weight = 0;
       }
-      result.barycenter = (result.barycenter! * result.weight + blPred.order + brPred.order) / (result.weight + 2);
+      result.barycenter = (result.barycenter! * result.weight + blPred.getD(orderK) + brPred.getD(orderK)) / (result.weight + 2);
 
       result.weight = result.weight + 2;
     }
