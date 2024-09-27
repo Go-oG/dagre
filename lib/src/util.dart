@@ -216,28 +216,6 @@ Map<String, Map<String, double>> zipObject(List<String> props, List<Map<String, 
   return result;
 }
 
-dynamic applyWithChunking<T>(dynamic Function(List<dynamic>) fn, List<T> argsArray) {
-  if (argsArray.length > CHUNKING_THRESHOLD) {
-    var chunks = splitToChunks(argsArray);
-    return fn.call(chunks.map((chunk) => fn.call(chunk)).toList());
-  } else {
-    return fn.call(argsArray);
-  }
-}
-
-const int CHUNKING_THRESHOLD = 65535;
-
-List<List<T>> splitToChunks<T>(List<T> array, [int chunkSize = CHUNKING_THRESHOLD]) {
-  List<List<T>> chunks = [];
-  for (var i = 0; i < array.length; i += chunkSize) {
-    var end = i + chunkSize;
-    if (end > array.length) {
-      end = array.length;
-    }
-    chunks.add(array.sublist(i, end));
-  }
-  return chunks;
-}
 
 void printGraph(Graph g) {
   for (var v in g.nodes) {

@@ -1,5 +1,6 @@
 import 'package:dart_dagre/src/model/props.dart';
 import 'package:dart_dagre/src/rank/util.dart';
+import 'package:dart_dagre/src/util/list_util.dart';
 import '../graph/graph.dart';
 
 Graph feasibleTree(Graph g) {
@@ -18,18 +19,36 @@ Graph feasibleTree(Graph g) {
 }
 
 int tightTree(Graph t, Graph g) {
+  // dfs(String v) {
+  //   for (var e in (g.nodeEdges(v) ?? [])) {
+  //     var edgeV = e.v;
+  //     var w = (v == edgeV) ? e.w : edgeV;
+  //     if (!t.hasNode(w)) {
+  //       var vv = slack(g, e);
+  //       if (vv.isNaN || vv.toInt() == 0) {
+  //         t.setNode(w, Props());
+  //         t.setEdge2(v, w, value: Props());
+  //         dfs(w);
+  //       }
+  //     }
+  //   }
+  // }
+
   dfs(String v) {
-    for (var e in (g.nodeEdges(v) ?? [])) {
-      var edgeV = e.v;
-      var w = (v == edgeV) ? e.w : edgeV;
-      if (!t.hasNode(w)) {
-        var vv = slack(g, e);
-        if (vv.isNaN || vv.toInt() == 0) {
-          t.setNode(w, Props());
-          t.setEdge2(v, w, value: Props());
-          dfs(w);
+    List<String> stack = [v];
+    while (stack.isNotEmpty) {
+      var curr = stack.removeLast();
+      g.nodeEdges(curr)?.eachRight((e, i) {
+        String edgeV = e.v, w = curr == edgeV ? e.w : edgeV;
+        if (!t.hasNode(w)) {
+          var vv = slack(g, e);
+          if (vv.isNaN || vv.toInt() == 0) {
+            t.setNode(w, Props());
+            t.setEdge2(curr, w, value: Props());
+            stack.add(w);
+          }
         }
-      }
+      });
     }
   }
   t.nodes.forEach(dfs);

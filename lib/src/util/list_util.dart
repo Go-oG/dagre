@@ -36,6 +36,12 @@ extension ListExt<T> on List<T> {
     }
   }
 
+  void eachRight(void Function(T, int) call) {
+    for(int i=length-1;i>=0;i--){
+      call.call(this[i], i);
+    }
+  }
+
   List<T> filter(bool Function(T) call) {
     return List.from(where(call));
   }

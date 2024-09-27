@@ -74,7 +74,7 @@ double _calcCutValue(Graph t, Graph g, String child) {
 
 void _initLowLimValues(Graph tree, [String? root]) {
   root ??= tree.nodes[0];
-  _dfsAssignLowLim(tree, {}, 1, root);
+  _dfsAssignLowLim2(tree, {}, 1, root);
 }
 
 double _dfsAssignLowLim(Graph tree, Map<String, bool> visited, double nextLim, String v, [String? parent]) {
@@ -96,6 +96,39 @@ double _dfsAssignLowLim(Graph tree, Map<String, bool> visited, double nextLim, S
     label.remove(parentK);
   }
   return nextLim;
+}
+
+void _dfsAssignLowLim2(Graph tree, Map<String, bool> visited, double nextLim, String v, [String? parent]) {
+  List<dynamic> stack = [
+    [
+      nextLim,
+      {valueK: nextLim},
+      v,
+      parent,
+      false
+    ]
+  ];
+  while (stack.isNotEmpty) {
+    var current = stack.removeLast();
+    if (current[4] == true) {
+      var label = tree.node(current[2]);
+      label[lowK] = current[0];
+      label[limK] = current[1][valueK] + 1;
+      if (current[3] != null) {
+        label[parentK] = current[3];
+      } else {
+        label.remove(parentK);
+      }
+    } else if (visited[current[2]] != true) {
+      visited[current[2]] = true;
+      stack.add([current[1][valueK], current[1], current[2], current[3], true]);
+      tree.neighbors(current[2])?.eachRight((w, i) {
+        if (visited[w] != true) {
+          stack.add([current[1][valueK], current[1], w, current[2], false]);
+        }
+      });
+    }
+  }
 }
 
 Edge? leaveEdge(Graph tree) {
