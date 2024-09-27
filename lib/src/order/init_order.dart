@@ -17,12 +17,27 @@ List<List<String>> initOrder(Graph g) {
     return [];
   }));
 
-  void dfs(String v) {
-    if (visited.containsKey(v)) return;
-    visited[v] = true;
-    Props node = g.node(v);
-    layers[node.getI(rankK)].add(v);
-    g.successors(v)?.forEach(dfs);
+  // void dfs(String v) {
+  //   if (visited.containsKey(v)) return;
+  //   visited[v] = true;
+  //   Props node = g.node(v);
+  //   layers[node.getI(rankK)].add(v);
+  //   g.successors(v)?.forEach(dfs);
+  // }
+
+  dfs(v) {
+    var stack = [v];
+    while (stack.isNotEmpty) {
+      var curr = stack.removeLast();
+      if (visited[curr] != true) {
+        visited[curr] = true;
+        var node = g.node(curr);
+        layers[node.getI(rankK)].add(curr);
+        g.successors(curr)?.eachRight((w, i) {
+          stack.add(w);
+        });
+      }
+    }
   }
 
   var orderedVs =simpleNodes;

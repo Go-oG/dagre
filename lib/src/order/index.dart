@@ -26,6 +26,12 @@ void order(Graph g, DagreConfig config) {
   List<List<String>> layering = initOrder(g);
   _assignOrder(g, layering);
 
+  /// https://github.com/dagrejs/dagre/pull/335/files
+  /// TODO 暂时修复
+  if (crossCount(g, layering) == 0) {
+    return;
+  }
+
   if (config.disableOptimalOrderHeuristic) {
     return;
   }

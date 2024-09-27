@@ -3,15 +3,15 @@ import 'package:dart_dagre/src/model/props.dart';
 
 import '../graph/graph.dart';
 
-num crossCount(Graph g, List<List<String>> layering) {
-  num cc = 0;
+int crossCount(Graph g, List<List<String>> layering) {
+  int cc = 0;
   for (var i = 1; i < layering.length; ++i) {
     cc += _twoLayerCrossCount(g, layering[i - 1], layering[i]);
   }
   return cc;
 }
 
-num _twoLayerCrossCount(Graph g, List<String> northLayer, List<String> southLayer) {
+int _twoLayerCrossCount(Graph g, List<String> northLayer, List<String> southLayer) {
   Map<String, int> southPos = {};
   for (int i = 0; i < southLayer.length; i++) {
     southPos[southLayer[i]] = i;
@@ -39,7 +39,7 @@ num _twoLayerCrossCount(Graph g, List<String> northLayer, List<String> southLaye
   List<num> tree = List.filled(treeSize, 0);
 
   // Calculate the weighted crossings
-  num cc = 0;
+  int cc = 0;
   for (var entry in southEntries) {
     int index = (entry.pos + firstIndex);
     tree[index] += entry.weight;
@@ -51,7 +51,7 @@ num _twoLayerCrossCount(Graph g, List<String> northLayer, List<String> southLaye
       index = (index - 1) >> 1;
       tree[index] += entry.weight;
     }
-    cc += entry.weight * weightSum;
+    cc += (entry.weight * weightSum).toInt();
   }
   return cc;
 }

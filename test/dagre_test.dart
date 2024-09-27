@@ -17,9 +17,8 @@ void main() {
   graph.addEdge(DagreEdge("lwilson", "kbacon"));
 
   DagreConfig config = DagreConfig(rankDir: RankDir.ttb);
-  DagreResult result = layout(graph, config, nodeLabelFun: (id) {
-    return Props();
-  });
-
- // print(result.toString());
+  var time = DateTime.now().millisecondsSinceEpoch;
+  DagreResult result = layout(graph, config);
+  print("耗时：${DateTime.now().millisecondsSinceEpoch - time}ms");
+  print(result.toString());
 }

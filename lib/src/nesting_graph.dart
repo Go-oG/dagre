@@ -64,19 +64,20 @@ void _dfs(Graph g, String root, double nodeSep, double weight, double height, Ma
 
 Map<String, int> _treeDepths(Graph g) {
   Map<String, int> depths = {};
-  dfs(v, depth) {
-    var children = g.children(v);
-    if (children != null && children.isNotEmpty) {
-      for (var child in children) {
-        dfs(child, depth + 1);
+  List<String>? children=g.children();
+  int depth=1;
+  while (children != null && children.isNotEmpty) {
+    List<String> next=[];
+    for(var item in children){
+      depths[item]=depth;
+      List<String>? tmp = g.children(item);
+      if (tmp != null) {
+        next.addAll(tmp);
       }
     }
-    depths[v] = depth;
+    children=next;
+    depth+=1;
   }
-
-  g.children()?.forEach((v) {
-    dfs(v, 1);
-  });
   return depths;
 }
 
