@@ -1,7 +1,6 @@
 import 'package:dart_dagre/dart_dagre.dart';
 import 'package:dart_dagre/src/model/enums/relationship.dart';
-import 'package:dart_dagre/src/model/graph_props.dart';
-import 'package:dart_dagre/src/model/node_props.dart';
+import 'package:dart_dagre/src/model/props.dart';
 import 'package:dart_dagre/src/order/sort_subgraph.dart';
 import 'package:dart_dagre/src/util/list_util.dart';
 import '../graph/graph.dart';
@@ -13,7 +12,7 @@ import 'cross_count.dart';
 import 'init_order.dart';
 import 'build_layer_graph.dart';
 
-void order(Graph g, GraphConfig config) {
+void order(Graph g, DagreConfig config) {
   var fun = config.customOrder;
   if (fun != null) {
     fun.call(g);
@@ -54,10 +53,10 @@ List<Graph> _buildLayerGraphs(Graph g, List<int> ranks, Relationship ship) {
 void _sweepLayerGraphs(List<Graph> layerGraphs,bool biasRight) {
   var cg = Graph();
   for (var lg in layerGraphs) {
-    var root = lg.getLabel<GraphProps>().root!;
+    String root = lg.label[rootK];
     ResolveConflictsResult sorted = sortSubgraph(lg, root, cg, biasRight);
     sorted.vs.each((v, i) {
-      lg.node<NodeProps>(v).order = i;
+      lg.node(v)[orderK] = i;
     });
     addSubgraphConstraints(lg, cg, sorted.vs);
   }
@@ -66,7 +65,7 @@ void _sweepLayerGraphs(List<Graph> layerGraphs,bool biasRight) {
 void _assignOrder(Graph g, List<List<String>> layering) {
   for (var layer in layering) {
     layer.each((v, i) {
-      g.node<NodeProps>(v).order = i;
+      g.node(v)[orderK] = i;
     });
   }
 }

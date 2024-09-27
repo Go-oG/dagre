@@ -1,15 +1,13 @@
-import 'package:dart_dagre/src/model/edge_props.dart';
-import 'package:dart_dagre/src/model/node_props.dart';
+import 'package:dart_dagre/src/model/props.dart';
 import 'package:dart_dagre/src/rank/util.dart';
 import '../graph/graph.dart';
-import '../util/list_util.dart';
 
 Graph feasibleTree(Graph g) {
   var t = Graph(isDirected: false);
   var start = g.nodes[0];
-  var size = g.nodeCount;
-  t.setNode(start, NodeProps());
-  EdgeObj edge;
+  int size = g.nodeCount;
+  t.setNode(start, Props());
+  Edge edge;
   num delta;
   while (tightTree(t, g) < size) {
     edge = _findMinSlackEdge(t, g);
@@ -21,21 +19,24 @@ Graph feasibleTree(Graph g) {
 
 int tightTree(Graph t, Graph g) {
   dfs(String v) {
-    g.nodeEdges(v).forEach((e) {
-      var edgeV = e.v, w = (v == edgeV) ? e.w : edgeV;
-      if (!t.hasNode(w) && slack(g, e) != 0) {
-        t.setNode(w, NodeProps());
-        t.setEdge(v, w, value:EdgeProps.zero());
-        dfs(w);
+    for (var e in (g.nodeEdges(v) ?? [])) {
+      var edgeV = e.v;
+      var w = (v == edgeV) ? e.w : edgeV;
+      if (!t.hasNode(w)) {
+        var vv = slack(g, e);
+        if (vv.isNaN || vv.toInt() == 0) {
+          t.setNode(w, Props());
+          t.setEdge2(v, w, value: Props());
+          dfs(w);
+        }
       }
-    });
+    }
   }
-
   t.nodes.forEach(dfs);
   return t.nodeCount;
 }
 
-EdgeObj _findMinSlackEdge(Graph t, Graph g) {
+Edge _findMinSlackEdge(Graph t, Graph g) {
   var edges = g.edges;
 
   List<dynamic> acc = [double.infinity, null];
@@ -54,7 +55,7 @@ EdgeObj _findMinSlackEdge(Graph t, Graph g) {
 
 void _shiftRanks(Graph t, Graph g, num delta) {
   for (var v in t.nodes) {
-    var rank = (g.node<NodeProps>(v).rank ?? 0) + delta;
-    g.node(v).rank = rank.toInt();
+    var rank = (g.node(v).getD2(rankK) ?? 0) + delta;
+    g.node(v)[rankK] = rank;
   }
 }

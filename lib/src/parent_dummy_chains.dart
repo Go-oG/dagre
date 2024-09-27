@@ -1,16 +1,14 @@
 import 'dart:math' as math;
 
 import 'package:dart_dagre/src/graph/graph.dart';
-import 'package:dart_dagre/src/model/node_props.dart';
+import 'package:dart_dagre/src/model/props.dart';
 import 'package:dart_dagre/src/util/list_util.dart';
-
-import 'model/graph_props.dart';
 
 void parentDummyChains(Graph g) {
   Map<String, _InnerResult2> postorderNums = _postorder(g);
-  for (var v in g.getLabel<GraphProps>().dummyChains) {
-    var node = g.node<NodeProps>(v);
-    var edgeObj = node.edgeObj!;
+  for (var v in g.label.getL<String>(dummyChainsK)) {
+    var node = g.node(v);
+    var edgeObj = node.get<Edge>(edgeObjK);
     _InnerResult pathData = _findPath(g, postorderNums, edgeObj.v, edgeObj.w);
     var path = pathData.path;
     var lca = pathData.lca;
@@ -19,10 +17,10 @@ void parentDummyChains(Graph g) {
     var ascending = true;
 
     while (v != edgeObj.w) {
-      node = g.node<NodeProps>(v);
+      node = g.node(v);
 
       if (ascending) {
-        while ((pathV = path[pathIdx]) != lca && g.node<NodeProps>(pathV!).maxRank! < node.rank! ) {
+        while ((pathV = path[pathIdx]) != lca && g.node(pathV!).getD(maxRankK) < node.getD(rankK)) {
           pathIdx++;
         }
 
@@ -32,14 +30,14 @@ void parentDummyChains(Graph g) {
       }
 
       if (!ascending) {
-        while (pathIdx < path.length - 1 && g.node<NodeProps>((pathV = path[pathIdx + 1])!).minRank! <= node.rank! ) {
+        while (pathIdx < path.length - 1 && g.node((pathV = path[pathIdx + 1])!).getD(minRankK) <= node.getD(rankK)) {
           pathIdx++;
         }
         pathV = path[pathIdx];
       }
 
       g.setParent(v, pathV);
-      v = g.successors(v)[0];
+      v = g.successors(v)![0];
     }
   }
 }
@@ -57,7 +55,7 @@ _InnerResult _findPath(Graph g, Map<String, _InnerResult2> postorderNums, String
   // Traverse up from v to find the LCA
   parent = v;
   do {
-    parent = g.parent(parent);
+    parent = g.parent(parent!);
     vPath.add(parent);
   } while (parent != null && (postorderNums[parent]!.low > low || lim > postorderNums[parent]!.lim));
   lca = parent;
@@ -79,14 +77,14 @@ Map<String, _InnerResult2> _postorder(Graph g) {
   var lim = 0;
  void dfs(String v) {
     var low = lim;
-    g.children(v).forEach(dfs);
+    g.children(v)?.forEach(dfs);
     _InnerResult2 result2 = _InnerResult2();
     result2.low = low;
     result2.lim = lim++;
     result[v] = result2;
   }
 
-  g.children().forEach(dfs);
+  g.children()?.forEach(dfs);
   return result;
 }
 

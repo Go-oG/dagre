@@ -1,26 +1,25 @@
 import 'package:dart_dagre/dart_dagre.dart';
-import 'package:dart_dagre/src/model/node_props.dart';
+import 'package:dart_dagre/src/model/props.dart';
 
 void main() {
-  Map<String, DagreNode> nodeMap = {};
-  nodeMap["kspacey"] = (DagreNode("kspacey", width: 144, height: 100));
-  nodeMap["swilliams"] = (DagreNode("swilliams", width: 160, height: 100));
-  nodeMap["bpitt"] = (DagreNode("bpitt", width: 108, height: 100));
-  nodeMap["hford"] = (DagreNode("hford", width: 168, height: 100));
-  nodeMap["lwilson"] = (DagreNode("lwilson", width: 144, height: 100));
-  nodeMap["kbacon"] = (DagreNode("kbacon", width: 121, height: 100));
+  DagreGraph graph = DagreGraph();
+  graph.addNode2("kspacey", 144, 100);
+  graph.addNode2("swilliams", 160, 100);
+  graph.addNode2("bpitt", 108, 100);
+  graph.addNode2("hford", 168, 100);
+  graph.addNode2("lwilson", 144, 100);
+  graph.addNode2("kbacon", 121, 100);
 
-  List<DagreEdge> edgeList = [];
-  edgeList.add(DagreEdge(nodeMap["kspacey"]!, nodeMap["swilliams"]!));
-  edgeList.add(DagreEdge(nodeMap["swilliams"]!, nodeMap["kbacon"]!));
-  edgeList.add(DagreEdge(nodeMap["bpitt"]!, nodeMap["kbacon"]!));
-  edgeList.add(DagreEdge(nodeMap["hford"]!, nodeMap["lwilson"]!));
-  edgeList.add(DagreEdge(nodeMap["lwilson"]!, nodeMap["kbacon"]!));
-  GraphConfig config = GraphConfig(rankDir: RankDir.ttb, align: GraphAlign.dtl);
+  graph.addEdge(DagreEdge("kspacey", "swilliams"));
+  graph.addEdge(DagreEdge("swilliams", "kbacon"));
+  graph.addEdge(DagreEdge("bpitt", "kbacon"));
+  graph.addEdge(DagreEdge("hford", "lwilson"));
+  graph.addEdge(DagreEdge("lwilson", "kbacon"));
 
-  DagreResult result = layout(nodeMap.values.toList(), edgeList, config,nodeLabelFun: (id){
-    return NodeProps();
+  DagreConfig config = DagreConfig(rankDir: RankDir.ttb);
+  DagreResult result = layout(graph, config, nodeLabelFun: (id) {
+    return Props();
   });
 
-  print(result.toString());
+ // print(result.toString());
 }

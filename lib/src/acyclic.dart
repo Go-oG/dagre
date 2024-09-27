@@ -1,31 +1,30 @@
 import 'package:dart_dagre/src/graph/graph.dart';
-import 'package:dart_dagre/src/model/edge_props.dart';
 import 'package:dart_dagre/src/model/enums/acyclicer.dart';
 import 'package:dart_dagre/src/util/util.dart';
 
 import 'greedy_fas.dart';
-import 'model/graph_props.dart';
+import 'model/props.dart';
 
 void run(Graph g) {
-  double Function(EdgeObj) weightFn(Graph g2) {
+  double Function(Edge) weightFn(Graph g2) {
     return (e) {
-      return g2.edge2<EdgeProps>(e).weight;
+      return g2.edge2(e).getD(weightK);
     };
   }
 
-  List<EdgeObj> fas = (g.getLabel<GraphProps>().acyclicer==Acyclicer.greedy ? greedyFAS(g, weightFn(g)) : dfsFAS(g));
+  List<Edge> fas = (g.label.acyclicer == Acyclicer.greedy ? greedyFAS(g, weightFn(g)) : dfsFAS(g));
   for (var e in fas) {
-    var label = g.edge2<EdgeProps>(e);
+    var label = g.edge2(e);
     g.removeEdge2(e);
-    label.forwardName = e.id;
-    label.reversed = true;
-    g.setEdge(e.w, e.v,value: label,id: uniqueId("rev"));
+    label[forwardNameK] = e.id;
+    label[reversedK] = true;
+    g.setEdge2(e.w, e.v, value: label, name: uniqueId("rev"));
   }
 
 }
 
-List<EdgeObj> dfsFAS(Graph g) {
-  List<EdgeObj> fas = [];
+List<Edge> dfsFAS(Graph g) {
+  List<Edge> fas = [];
   Map<String, bool> stack = {};
   Map<String, bool> visited = {};
 
@@ -35,7 +34,7 @@ List<EdgeObj> dfsFAS(Graph g) {
     }
     visited[v] = true;
     stack[v] = true;
-    g.outEdges(v).forEach((e) {
+    g.outEdges(v)?.forEach((e) {
       if (stack.containsKey(e.w)) {
         fas.add(e);
       } else {
@@ -51,13 +50,13 @@ List<EdgeObj> dfsFAS(Graph g) {
 
 void undo(Graph g) {
   for (var e in g.edges) {
-    var label = g.edge2<EdgeProps>(e);
-    if (label.reversed==true) {
+    var label = g.edge2(e);
+    if (label[reversedK] == true) {
       g.removeEdge2(e);
-      var forwardName = label.forwardName;
-      label.reversed = null;
-      label.forwardName = null;
-      g.setEdge(e.w, e.v,value:label,id: forwardName);
+      var name = label.getS(forwardNameK);
+      label.remove(reversedK);
+      label.remove(forwardNameK);
+      g.setEdge2(e.w, e.v, value: label, name: name);
     }
   }
 }

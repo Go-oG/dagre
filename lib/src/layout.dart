@@ -2,15 +2,12 @@ import 'dart:math' as math;
 import 'package:dart_dagre/dart_dagre.dart';
 import 'package:dart_dagre/src/graph/graph.dart';
 import 'package:dart_dagre/src/model/enums/dummy.dart';
+import 'package:dart_dagre/src/model/graph_label.dart';
 import 'package:dart_dagre/src/model/graph_rect.dart';
-import 'package:dart_dagre/src/model/enums/label_pos.dart';
-import 'package:dart_dagre/src/model/enums/rank_dir.dart';
+import 'package:dart_dagre/src/model/props.dart';
 import 'package:dart_dagre/src/model/tmp/self_edge_data.dart';
 import 'package:dart_dagre/src/parent_dummy_chains.dart';
 import 'package:dart_dagre/src/position/index.dart';
-import 'package:dart_dagre/src/model/edge_props.dart';
-import 'package:dart_dagre/src/model/graph_props.dart';
-import 'package:dart_dagre/src/model/node_props.dart';
 import 'package:dart_dagre/src/util.dart';
 import 'package:dart_dagre/src/util.dart' as util;
 import 'package:dart_dagre/src/util/list_util.dart';
@@ -24,18 +21,85 @@ import 'add_border_segments.dart';
 import 'model/graph_point.dart';
 import 'order/index.dart';
 
-void layout(Graph g,GraphConfig config) {
+void layout(Graph g, DagreConfig config) {
   var layoutGraph = _buildLayoutGraph(g);
   _runLayout(layoutGraph,config);
   _updateInputGraph(g, layoutGraph);
 }
 
-void _runLayout(Graph g,GraphConfig config) {
+Graph _buildLayoutGraph(Graph inputGraph) {
+  var g = Graph(isMultiGraph: true, isCompound: true);
+  var graph = inputGraph.label.copy();
+  GraphLabel label = GraphLabel(rankSep: 50, edgeSep: 20, nodeSep: 50, rankDir: RankDir.ttb);
+  label.nodeSep = graph.nodeSep;
+  label.edgeSep = graph.edgeSep;
+  label.rankSep = graph.rankSep;
+  label.marginX = graph.marginX;
+  label.marginY = graph.marginY;
+  label.acyclicer = graph.acyclicer;
+  label.ranker = graph.ranker;
+  label.rankDir = graph.rankDir;
+  label.align = graph.align;
+  g.label = label;
+
+  for (var v in inputGraph.nodes) {
+    var node = inputGraph.nodeNull(v) ?? Props();
+    var np = Props();
+    np[widthK] = node.get(widthK);
+    np[heightK] = node.get(heightK);
+    if (!np.hasOwn(widthK)) {
+      np[widthK] = 0;
+    }
+    if (!np.hasOwn(heightK)) {
+      np[heightK] = 0;
+    }
+
+    g.setNode(v, np);
+    g.setParent(v, inputGraph.parent(v));
+  }
+
+  for (var e in inputGraph.edges) {
+    Props? edge = inputGraph.edgeNull(e.v, e.w, e.id);
+    var ep = {
+      minLenK: 1,
+      widthK: 0,
+      heightK: 0,
+      weightK: 1,
+      labelOffsetK: 10,
+      labelPosK: LabelPosition.right,
+    };
+    if (edge != null) {
+      if (edge[minLenK] != null) {
+        ep[minLenK] = edge[minLenK];
+      }
+      if (edge[weightK] != null) {
+        ep[weightK] = edge[weightK];
+      }
+      if (edge[widthK] != null) {
+        ep[widthK] = edge[widthK];
+      }
+      if (edge[heightK] != null) {
+        ep[heightK] = edge[heightK];
+      }
+      if (edge[labelOffsetK] != null) {
+        ep[labelOffsetK] = edge[labelOffsetK];
+      }
+      if (edge[labelPosK] != null) {
+        ep[labelPosK] = edge[labelPosK];
+      }
+    }
+    g.setEdge(e, ep.toProps);
+  }
+
+  return g;
+}
+
+void _runLayout(Graph g, DagreConfig config) {
   _makeSpaceForEdgeLabels(g);
   _removeSelfEdges(g);
   acyclic.run(g);
   nesting_graph.run(g);
-  rank(util.asNonCompoundGraph(g));
+  rankFun(util.asNonCompoundGraph(g));
   _injectEdgeLabelProxies(g);
   removeEmptyRanks(g);
   nesting_graph.cleanup(g);
@@ -62,103 +126,45 @@ void _runLayout(Graph g,GraphConfig config) {
 
 void _updateInputGraph(Graph inputGraph, Graph layoutGraph) {
   for (var v in inputGraph.nodes) {
-    var inputLabel = inputGraph.node<NodeProps?>(v);
-    var layoutLabel = layoutGraph.node<NodeProps>(v);
+    var inputLabel = inputGraph.nodeNull(v);
+    var layoutLabel = layoutGraph.node(v);
 
     if (inputLabel != null) {
-      inputLabel.x = layoutLabel.x;
-      inputLabel.y = layoutLabel.y;
-      inputLabel.rank = layoutLabel.rank;
-
-      if (layoutGraph.children(v).isNotEmpty) {
-        inputLabel.width = layoutLabel.width;
-        inputLabel.height = layoutLabel.height;
+      inputLabel[xK] = layoutLabel[xK];
+      inputLabel[yK] = layoutLabel[yK];
+      inputLabel[rankK] = layoutLabel[rankK];
+      var children = layoutGraph.children(v);
+      if (children != null && children.isNotEmpty) {
+        inputLabel[widthK] = layoutLabel[widthK];
+        inputLabel[heightK] = layoutLabel[heightK];
       }
     }
   }
-
   for (var e in inputGraph.edges) {
-    var inputLabel = inputGraph.edge2<EdgeProps>(e);
-    var layoutLabel = layoutGraph.edge2<EdgeProps>(e);
+    var inputLabel = inputGraph.edge2(e);
+    var layoutLabel = layoutGraph.edge2(e);
 
-    inputLabel.points = layoutLabel.points;
-    if (layoutLabel.x != null) {
-      inputLabel.x = layoutLabel.x;
-      inputLabel.y = layoutLabel.y;
+    inputLabel[pointsK] = layoutLabel[pointsK];
+    if (layoutLabel.get2(xK) != null) {
+      inputLabel[xK] = layoutLabel[xK];
+      inputLabel[yK] = layoutLabel[yK];
     }
   }
-
-  inputGraph.getLabel<GraphProps>().width = layoutGraph.getLabel<GraphProps>().width;
-  inputGraph.getLabel<GraphProps>().height = layoutGraph.getLabel<GraphProps>().height;
-}
-
-Graph _buildLayoutGraph(Graph inputGraph) {
-  var g = Graph(isMultiGraph: true, isCompound: true);
-  var graph = inputGraph.getLabel<GraphProps>();
-  GraphProps gp = GraphProps(rankSep: 50, edgeSep: 20, nodeSep: 50, rankDir: RankDir.ttb);
-
-  gp.nodeSep = graph.nodeSep;
-  gp.edgeSep = graph.edgeSep;
-  gp.rankSep = graph.rankSep;
-  gp.marginX = graph.marginX;
-  gp.marginY = graph.marginY;
-  gp.acyclicer = graph.acyclicer;
-  gp.ranker = graph.ranker;
-  gp.rankDir = graph.rankDir;
-  gp.align = graph.align;
-  g.setLabel(gp);
-
-  for (var v in inputGraph.nodes) {
-    var node = inputGraph.node<NodeProps?>(v) ?? NodeProps();
-    var np = NodeProps();
-    np.width = node.width;
-    np.height = node.height;
-    if (np.width < 0) {
-      np.width = 0;
-    }
-    if (np.height < 0) {
-      np.height = 0;
-    }
-
-    g.setNode(v, np);
-    g.setParent(v, inputGraph.parent(v));
-  }
-
-  for (var e in inputGraph.edges) {
-    EdgeProps? edge = inputGraph.edge<EdgeProps?>(e.v, e.w, e.id);
-
-    EdgeProps ep = EdgeProps(
-      minLen: 1,
-      width: 0,
-      height: 0,
-      weight: 1,
-      labelOffset: 10,
-      labelPos: LabelPosition.right,
-    );
-    if (edge != null) {
-      ep.minLen = edge.minLen;
-      ep.weight = edge.weight;
-      ep.width = edge.width;
-      ep.height = edge.height;
-      ep.labelOffset = edge.labelOffset;
-      ep.labelPos = edge.labelPos;
-    }
-    g.setEdge2(e, ep);
-  }
-  return g;
+  inputGraph.label.width = layoutGraph.label.width;
+  inputGraph.label.height = layoutGraph.label.height;
 }
 
 void _makeSpaceForEdgeLabels(Graph g) {
-  var graph = g.getLabel<GraphProps>();
+  var graph = g.label;
   graph.rankSep /= 2;
   g.edges.each((e, p1) {
-    var edge = g.edge2<EdgeProps>(e);
-    edge.minLen *= 2;
-    if (edge.labelPos != LabelPosition.center) {
+    var edge = g.edge2(e);
+    edge[minLenK] = edge.getD(minLenK) * 2;
+    if (edge.get2(labelPosK) != LabelPosition.center) {
       if (graph.rankDir == RankDir.ttb || graph.rankDir == RankDir.btt) {
-        edge.width += edge.labelOffset;
+        edge[widthK] = edge.getD(widthK) + edge.getD(labelOffsetK);
       } else {
-        edge.height += edge.labelOffset;
+        edge[heightK] = edge.getD(heightK) + edge.getD(labelOffsetK);
       }
     }
   });
@@ -166,35 +172,37 @@ void _makeSpaceForEdgeLabels(Graph g) {
 
 void _injectEdgeLabelProxies(Graph g) {
   for (var e in g.edgesIterable) {
-    var edge = g.edge2<EdgeProps>(e);
-    if (edge.width >= 0 && edge.height >= 0) {
-      var v = g.node<NodeProps>(e.v);
-      var w = g.node<NodeProps>(e.w);
-      var label = NodeProps(rank: ((w.rank! - v.rank!) / 2 + v.rank!).toInt(), e: e);
-      util.addDummyNode(g, Dummy.edgeProxy, label, "_ep");
+    var edge = g.edge2(e);
+    bool bw = edge.hasOwn(widthK) && edge.getI(widthK) != 0;
+    bool bh = edge.hasOwn(heightK) && edge.getI(heightK) != 0;
+    if (bw && bh) {
+      var v = g.node(e.v);
+      var w = g.node(e.w);
+      var label = {rankK: (w.getD(rankK) - v.getD(rankK)) / 2 + v.getD(rankK), eK: e};
+      util.addDummyNode(g, Dummy.edgeProxy, label.toProps, "_ep");
     }
   }
 }
 
 void _assignRankMinMax(Graph g) {
-  int maxRank = 0;
+  double maxRank = 0;
   for (var v in g.nodesIterable) {
-    var node = g.node<NodeProps>(v);
-    var value = node.borderTop;
+    var node = g.node(v);
+    var value = node.getS2(borderTopK);
     if (value != null) {
-      node.minRank = g.node<NodeProps>(value).rank;
-      node.maxRank = g.node<NodeProps>(node.borderBottom!).rank;
-      maxRank = math.max(maxRank, node.maxRank!);
+      node[minRankK] = g.node(value)[rankK];
+      node[maxRankK] = g.node(node.getS(borderBottomK))[rankK];
+      maxRank = math.max(maxRank, node.getD(maxRankK));
     }
   }
-  g.getLabel<GraphProps>().maxRank = maxRank;
+  g.label[maxRankK] = maxRank;
 }
 
 void _removeEdgeLabelProxies(Graph g) {
   for (var v in g.nodes) {
-    var node = g.node<NodeProps>(v);
-    if (node.dummy == Dummy.edgeProxy) {
-      g.edge2<EdgeProps>(node.e!).labelRank = node.rank;
+    var node = g.node(v);
+    if (node[dummyK] == Dummy.edgeProxy) {
+      g.edge2(node.get(eK))[labelRankK] = node[rankK];
       g.removeNode(v);
     }
   }
@@ -202,34 +210,23 @@ void _removeEdgeLabelProxies(Graph g) {
 
 void _translateGraph(Graph g) {
   var minX = double.maxFinite;
-  var maxX = 0;
+  double maxX = 0;
   var minY = double.maxFinite;
-  var maxY = 0;
-  var graphLabel = g.getLabel<GraphProps>();
+  double maxY = 0;
+  var graphLabel = g.label;
   var marginX =graphLabel.marginX;
   var marginY =graphLabel.marginY;
 
   ///attrs is NodeProps or EdgeProps
-  getExtremes(attrs) {
-    if (attrs is NodeProps) {
-      double x = attrs.x!;
-      double y = attrs.y!;
-      double w = attrs.width;
-      double h = attrs.height;
-      minX = math.min(minX, x - w / 2);
-      maxX = math.max(maxX, (x + w / 2)).toInt();
-      minY = math.min(minY, y - h / 2);
-      maxY = math.max(maxY, (y + h / 2)).toInt();
-    } else if (attrs is EdgeProps) {
-      double x = attrs.x!;
-      double y = attrs.y!;
-      num w = attrs.width;
-      num h = attrs.height;
-      minX = math.min(minX, x - w / 2);
-      maxX = math.max(maxX, (x + w / 2)).toInt();
-      minY = math.min(minY, y - h / 2);
-      maxY = math.max(maxY, (y + h / 2)).toInt();
-    }
+  getExtremes(Props attrs) {
+    double x = attrs.getD(xK);
+    double y = attrs.getD(yK);
+    double w = attrs[widthK];
+    double h = attrs[heightK];
+    minX = math.min(minX, x - w / 2);
+    maxX = math.max(maxX, (x + w / 2));
+    minY = math.min(minY, y - h / 2);
+    maxY = math.max(maxY, (y + h / 2));
   }
 
   for (var v in g.nodesIterable) {
@@ -237,8 +234,8 @@ void _translateGraph(Graph g) {
   }
 
   for (var e in g.edgesIterable) {
-    var edge = g.edge2<EdgeProps>(e);
-    if (edge.x != null) {
+    var edge = g.edge2(e);
+    if (edge.hasOwn(xK)) {
       getExtremes(edge);
     }
   }
@@ -247,22 +244,22 @@ void _translateGraph(Graph g) {
   minY -= marginY;
 
   for (var v in g.nodesIterable) {
-    var node = g.node<NodeProps>(v);
-    node.x = node.x! - minX;
-    node.y = node.y! - minY;
+    var node = g.node(v);
+    node[xK] = node.getD(xK) - minX;
+    node[yK] = node.getD(yK) - minY;
   }
 
   for (var e in g.edgesIterable) {
-    var edge = g.edge2<EdgeProps>(e);
-    edge.points.each((p, p1) {
+    var edge = g.edge2(e);
+    edge.getL<GraphPoint>(pointsK).each((p, p1) {
       p.x -= minX;
       p.y -= minY;
     });
-    if (edge.x != null) {
-      edge.x = edge.x! - minX;
+    if (edge.hasOwn(xK)) {
+      edge[xK] = edge.getD(xK) - minX;
     }
-    if (edge.y != null) {
-      edge.y = edge.y! - minY;
+    if (edge.hasOwn(yK)) {
+      edge[yK] = edge.getD(yK) - minY;
     }
   }
   graphLabel.width = maxX - minX + marginX;
@@ -271,37 +268,39 @@ void _translateGraph(Graph g) {
 
 void _assignNodeIntersects(Graph g) {
   for (var e in g.edgesIterable) {
-    var edge = g.edge2<EdgeProps>(e);
-    var nodeV = g.node<NodeProps>(e.v);
-    var nodeW = g.node<NodeProps>(e.w);
+    var edge = g.edge2(e);
+    var nodeV = g.node(e.v);
+    var nodeW = g.node(e.w);
     GraphPoint p1, p2;
-    if (edge.points.isEmpty) {
-      p1 = GraphPoint(nodeW.x!.toDouble(), nodeW.y!.toDouble());
-      p2 = GraphPoint(nodeV.x!.toDouble(), nodeV.y!.toDouble());
+    List<dynamic>? points = edge.get2(pointsK);
+    if (points == null || points.isEmpty) {
+      p1 = GraphPoint(nodeW.getD(xK), nodeW.getD(yK));
+      p2 = GraphPoint(nodeV.getD(xK), nodeV.getD(yK));
     } else {
-      p1 = edge.points[0];
-      p2 = edge.points.last;
+      p1 = points[0];
+      p2 = points.last;
     }
-
-    edge.points.insert(0, util.intersectRect(GraphRect(nodeV.x!, nodeV.y!, nodeV.width, nodeV.height), p1));
-    edge.points.add(util.intersectRect(GraphRect(nodeW.x!, nodeW.y!, nodeW.width, nodeW.height), p2));
+    points?.insert(
+        0, util.intersectRect(GraphRect(nodeV.getD(xK), nodeV.getD(yK), nodeV.getD(widthK), nodeV.getD(heightK)), p1));
+    points?.add(
+        util.intersectRect(GraphRect(nodeW.getD(xK), nodeW.getD(yK), nodeW.getD(widthK), nodeW.getD(heightK)), p2));
   }
 }
 
 void _fixupEdgeLabelCoords(Graph g) {
   for (var e in g.edgesIterable) {
-    var edge = g.edge2<EdgeProps>(e);
-    var xValue = edge.x;
+    var edge = g.edge2(e);
+    var xValue = edge.getD2(xK);
     if (xValue != null) {
-      if (edge.labelPos == LabelPosition.left || edge.labelPos == LabelPosition.right) {
-        edge.width -=edge.labelOffset;
+      if (edge.get2(labelPosK) == LabelPosition.left || edge.get2(labelPosK) == LabelPosition.right) {
+        edge[widthK] = edge.getD(widthK) - edge.getD(labelOffsetK);
       }
 
-      LabelPosition lp = edge.labelPos;
+      LabelPosition lp = edge.get2(labelPosK);
       if (lp == LabelPosition.left) {
-        edge.x = xValue - (edge.width / 2 + edge.labelOffset);
+        edge[xK] = xValue - (edge.getD(widthK) / 2 + edge.getD(labelOffsetK));
       } else if (lp == LabelPosition.right) {
-        edge.x = xValue + (edge.width / 2 + edge.labelOffset);
+        edge[xK] = xValue + (edge.getD(widthK) / 2 + edge.getD(labelOffsetK));
       }
     }
   }
@@ -309,31 +308,31 @@ void _fixupEdgeLabelCoords(Graph g) {
 
 void _reversePointsForReversedEdges(Graph g) {
   for (var e in g.edgesIterable) {
-    var edge = g.edge2<EdgeProps>(e);
-    if (edge.reversed==true) {
-      edge.points = List.from(edge.points.reversed);
+    var edge = g.edge2(e);
+    if (edge[reversedK] == true) {
+      edge[pointsK] = edge.getL<GraphPoint>(pointsK).reverse2();
     }
   }
 }
 
 void _removeBorderNodes(Graph g) {
   for (var v in g.nodesIterable) {
-    if (g.children(v).isNotEmpty) {
-      var node = g.node<NodeProps>(v);
-      var t = g.node<NodeProps>(node.borderTop!);
-      var b = g.node<NodeProps>(node.borderBottom!);
-      var l = g.node<NodeProps>(node.borderLeft.last);
-      var r = g.node<NodeProps>(node.borderRight.last);
-
-      node.width = (r.x! - l.x!).abs();
-      node.height = (b.y! - t.y!).abs();
-      node.x = l.x! + node.width / 2;
-      node.y = t.y! + node.height / 2;
+    var cl = g.children(v);
+    if (cl != null && cl.isNotEmpty) {
+      var node = g.node(v);
+      var t = g.node(node.getS(borderTopK));
+      var b = g.node(node.getS(borderBottomK));
+      var l = g.node(node.getL<String>(borderLeftK).last);
+      var r = g.node(node.getL<String>(borderRightK).last);
+      node[widthK] = (r.getD(xK) - l.getD(xK)).abs();
+      node[heightK] = (b.getD(yK) - t.getD(yK)).abs();
+      node[xK] = l.getD(xK) + node.getD(widthK) / 2;
+      node[yK] = t.getD(yK) + node.getD(heightK) / 2;
     }
   }
 
   for (var v in g.nodes) {
-    if (g.node<NodeProps>(v).dummy == Dummy.border) {
+    if (g.node(v)[dummyK] == Dummy.border) {
       g.removeNode(v);
     }
   }
@@ -342,8 +341,8 @@ void _removeBorderNodes(Graph g) {
 void _removeSelfEdges(Graph g) {
   for (var e in g.edges) {
     if (e.v == e.w) {
-      var node = g.node<NodeProps>(e.v);
-      node.selfEdges.add(SelfEdgeData(e, g.edge2<EdgeProps>(e)));
+      var node = g.node(e.v);
+      node.get<List<SelfEdgeData>>(selfEdgesK).add(SelfEdgeData(e, g.edge2(e)));
       g.removeEdge2(e);
     }
   }
@@ -354,20 +353,19 @@ void _insertSelfEdges(Graph g) {
   for (var layer in layers) {
     var orderShift = 0;
     layer.each((v, i) {
-      var node = g.node<NodeProps>(v);
-      node.order = i + orderShift;
-      for (var selfEdge in node.selfEdges) {
-        NodeProps np = NodeProps();
-        np.width = selfEdge.data .width;
-        np.height =selfEdge.data.height;
-        np.rank = node.rank;
-        np.order = i + (++orderShift);
-        np.e = selfEdge.e;
-        np.label = selfEdge.data;
-
+      var node = g.node(v);
+      node[orderK] = i + orderShift;
+      for (SelfEdgeData selfEdge in (node[selfEdgesK] ?? [])) {
+        Props np = Props();
+        np[widthK] = selfEdge.data.getD(widthK);
+        np[heightK] = selfEdge.data.getD(heightK);
+        np[rankK] = node.get(rankK);
+        np[orderK] = i + (++orderShift);
+        np[eK] = selfEdge.e;
+        np[labelK] = selfEdge.data;
         util.addDummyNode(g, Dummy.selfEdge, np, "_se");
       }
-      node.selfEdges=[];
+      node.remove(selfEdgesK);
     });
 
   }
@@ -375,24 +373,24 @@ void _insertSelfEdges(Graph g) {
 
 void _positionSelfEdges(Graph g) {
   for (var v in g.nodes) {
-    var node = g.node<NodeProps>(v);
-    if (node.dummy == Dummy.selfEdge) {
-      var selfNode = g.node<NodeProps>(node.e!.v);
-      var x = selfNode.x! + selfNode.width / 2;
-      var y = selfNode.y!;
-      var dx = node.x! - x;
-      var dy = selfNode.height / 2;
-      g.setEdge2(node.e!, node.label);
+    var node = g.node(v);
+    if (node.get2(dummyK) == Dummy.selfEdge) {
+      var selfNode = g.node(node.get<Edge>(eK).v);
+      var x = selfNode.getD(xK) + selfNode.getD(widthK) / 2;
+      var y = selfNode.getD(yK);
+      var dx = node.getD(xK) - x;
+      var dy = selfNode.getD(heightK) / 2;
+      g.setEdge(node.get<Edge>(eK), node.get(labelK));
       g.removeNode(v);
-      node.label?.points = [
+      node.get<Props>(labelK)[pointsK] = <GraphPoint>[
         GraphPoint(x + 2 * dx / 3, y - dy),
         GraphPoint(x + 5 * dx / 6, y - dy),
         GraphPoint(x + dx, y),
         GraphPoint(x + 5 * dx / 6, y + dy),
         GraphPoint(x + 2 * dx / 3, y + dy)
       ];
-      node.label?.x = node.x;
-      node.label?.y = node.y;
+      node.get<Props>(labelK)[xK] = node.get(xK);
+      node.get<Props>(labelK)[yK] = node.get(yK);
     }
   }
 }
